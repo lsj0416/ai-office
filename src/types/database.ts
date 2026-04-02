@@ -145,7 +145,7 @@ export interface Database {
           id: string
           workspace_id: string
           content: string
-          embedding: number[] | null  // vector(1536) — JS에서는 number[]로 취급
+          embedding: number[] | null // vector(1536) — JS에서는 number[]로 취급
           metadata: MemoryMetadata
           created_at: string
         }

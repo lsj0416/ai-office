@@ -30,10 +30,17 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
   const isProtected = pathname.startsWith('/workspace')
+  const isAuthPage = pathname === '/login' || pathname === '/signup'
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  if (isAuthPage && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/workspace'
     return NextResponse.redirect(url)
   }
 

@@ -17,7 +17,9 @@ export default function WorkspaceLayout({
     <div className="flex min-h-screen">
       <aside className="w-56 border-r border-gray-200 bg-white">
         <div className="p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">워크스페이스</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            워크스페이스
+          </p>
         </div>
         <nav className="px-2">
           {navItems.map((item) => (

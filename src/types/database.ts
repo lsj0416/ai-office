@@ -5,6 +5,7 @@
 import type { AgentRole, AgentStatus, AIModel, TaskStatus } from './index'
 
 export interface Database {
+  PostgrestVersion: '12'
   public: {
     Tables: {
       workspaces: {
@@ -32,6 +33,7 @@ export interface Database {
           business?: string[]
           updated_at?: string
         }
+        Relationships: []
       }
 
       agents: {
@@ -71,6 +73,15 @@ export interface Database {
           position?: { x: number; y: number } | null
           order?: number
         }
+        Relationships: [
+          {
+            foreignKeyName: 'agents_workspace_id_fkey'
+            columns: ['workspace_id']
+            isOneToOne: false
+            referencedRelation: 'workspaces'
+            referencedColumns: ['id']
+          },
+        ]
       }
 
       threads: {
@@ -91,6 +102,22 @@ export interface Database {
         Update: {
           title?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'threads_workspace_id_fkey'
+            columns: ['workspace_id']
+            isOneToOne: false
+            referencedRelation: 'workspaces'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'threads_agent_id_fkey'
+            columns: ['agent_id']
+            isOneToOne: false
+            referencedRelation: 'agents'
+            referencedColumns: ['id']
+          },
+        ]
       }
 
       messages: {
@@ -111,6 +138,15 @@ export interface Database {
         Update: {
           content?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: 'messages_thread_id_fkey'
+            columns: ['thread_id']
+            isOneToOne: false
+            referencedRelation: 'threads'
+            referencedColumns: ['id']
+          },
+        ]
       }
 
       tasks: {
@@ -138,6 +174,15 @@ export interface Database {
           assignee_id?: string | null
           status?: TaskStatus
         }
+        Relationships: [
+          {
+            foreignKeyName: 'tasks_workspace_id_fkey'
+            columns: ['workspace_id']
+            isOneToOne: false
+            referencedRelation: 'workspaces'
+            referencedColumns: ['id']
+          },
+        ]
       }
 
       memories: {
@@ -145,7 +190,7 @@ export interface Database {
           id: string
           workspace_id: string
           content: string
-          embedding: number[] | null // vector(1536) — JS에서는 number[]로 취급
+          embedding: number[] | null
           metadata: MemoryMetadata
           created_at: string
         }
@@ -162,7 +207,20 @@ export interface Database {
           embedding?: number[] | null
           metadata?: MemoryMetadata
         }
+        Relationships: [
+          {
+            foreignKeyName: 'memories_workspace_id_fkey'
+            columns: ['workspace_id']
+            isOneToOne: false
+            referencedRelation: 'workspaces'
+            referencedColumns: ['id']
+          },
+        ]
       }
+    }
+
+    Views: {
+      [_ in never]: never
     }
 
     Functions: {
@@ -181,10 +239,17 @@ export interface Database {
         }>
       }
     }
+
+    Enums: {
+      [_ in never]: never
+    }
+
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-// memories.metadata의 구조 정의
 export interface MemoryMetadata {
   type?: 'conversation' | 'document' | 'meeting_note' | 'weekly_summary'
   agent_id?: string

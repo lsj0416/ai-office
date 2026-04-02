@@ -1,16 +1,91 @@
-import { successResponse, errorResponse } from '@/types/api'
+import { z } from 'zod'
+import { runWorkerStream } from '@/lib/ai/worker'
+import { createClient } from '@/lib/supabase/server'
+import { errorResponse } from '@/types/api'
 
-// TODO: Phase 1 - 에이전트 실행 API 구현
-export async function GET() {
-  return successResponse({ message: 'Agent API ready' })
-}
+const requestSchema = z.object({
+  agentId: z.string(),
+  agentName: z.string(),
+  persona: z.string(),
+  role: z.enum(['PM', 'DEVELOPER', 'MARKETER', 'DESIGNER', 'REVIEWER', 'CUSTOM']),
+  model: z.enum(['gpt-4o', 'gpt-4o-mini']),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+      })
+    )
+    .min(1),
+  workspaceContext: z.string().optional(),
+})
 
-export async function POST() {
+export async function POST(request: Request): Promise<Response> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return errorResponse('인증이 필요합니다', 401)
+  }
+
+  let body: unknown
   try {
-    // TODO: 에이전트 실행 로직
-    return successResponse({ message: 'Agent API ready' })
+    body = await request.json()
+  } catch {
+    return errorResponse('요청 본문이 올바르지 않습니다', 400)
+  }
+
+  const parsed = requestSchema.safeParse(body)
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]
+    return errorResponse(firstError?.message ?? '입력값이 올바르지 않습니다', 400)
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return errorResponse('OpenAI API Key가 설정되지 않았습니다', 500)
+  }
+
+  try {
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id, name, persona, role, model')
+      .eq('id', parsed.data.agentId)
+      .single()
+
+    if (agentError || !agent) {
+      return errorResponse('에이전트를 찾을 수 없습니다', 404)
+    }
+
+    if (
+      agent.name !== parsed.data.agentName ||
+      agent.persona !== parsed.data.persona ||
+      agent.role !== parsed.data.role ||
+      agent.model !== parsed.data.model
+    ) {
+      return errorResponse('에이전트 정보가 올바르지 않습니다', 400)
+    }
+
+    const stream = await runWorkerStream({
+      role: parsed.data.role,
+      agentName: parsed.data.agentName,
+      persona: parsed.data.persona,
+      model: parsed.data.model,
+      messages: parsed.data.messages,
+      workspaceContext: parsed.data.workspaceContext,
+    })
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal server error'
+    const message = error instanceof Error ? error.message : '에이전트 실행 중 오류가 발생했습니다'
     return errorResponse(message, 500)
   }
 }

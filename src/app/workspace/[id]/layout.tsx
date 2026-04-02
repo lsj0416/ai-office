@@ -2,7 +2,9 @@ import Link from 'next/link'
 
 const navItems = [
   { href: 'office', label: '오피스' },
+  { href: 'auto', label: '⚡ AUTO' },
   { href: 'chat', label: '채팅' },
+  { href: 'agents', label: '팀' },
   { href: 'tasks', label: '태스크' },
 ]
 
@@ -11,8 +13,10 @@ export default function WorkspaceLayout({
   params,
 }: {
   children: React.ReactNode
-  params: Promise<{ id: string }>
+  params: { id: string }
 }) {
+  const { id } = params
+
   return (
     <div className="flex min-h-screen">
       <aside className="w-56 border-r border-gray-200 bg-white">
@@ -25,7 +29,7 @@ export default function WorkspaceLayout({
           {navItems.map((item) => (
             <Link
               key={item.href}
-              href={`/workspace/${String(params)?.toString() ?? ''}/${item.href}`}
+              href={`/workspace/${id}/${item.href}`}
               className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
             >
               {item.label}

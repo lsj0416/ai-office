@@ -1,0 +1,19 @@
+# AI Office — Codex 설정
+# ChatGPT Plus 계정 연동 기준
+
+# 기본 모델 설정
+# review / adversarial-review 작업에 최적화
+model = "gpt-4o"
+model_reasoning_effort = "high"
+
+# 리뷰/검증 특화 설정
+# 코드 수정보다 분석에 집중
+[review]
+model = "gpt-4o"
+effort = "high"
+
+# rescue (버그 수정 위임) 설정
+# 빠른 수정이 목적이므로 mini로 절감
+[rescue]
+model = "gpt-4o-mini"
+effort = "medium"

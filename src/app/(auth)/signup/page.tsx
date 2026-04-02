@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState } from 'react'
-import { useFormStatus } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { signup } from '../actions'
 
 function SubmitButton() {
@@ -19,7 +18,7 @@ function SubmitButton() {
 }
 
 export default function SignupPage() {
-  const [state, formAction] = useActionState(signup, { error: '' })
+  const [state, formAction] = useFormState(signup, { error: '' })
 
   return (
     <div>

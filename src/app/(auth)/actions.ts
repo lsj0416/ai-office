@@ -33,7 +33,9 @@ export async function login(_prevState: AuthState, formData: FormData): Promise<
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
 
   if (error) {
-    return { error: getAuthErrorMessage(error.code, '로그인 중 오류가 발생했습니다. 다시 시도해주세요') }
+    return {
+      error: getAuthErrorMessage(error.code, '로그인 중 오류가 발생했습니다. 다시 시도해주세요'),
+    }
   }
 
   redirect('/workspace')
@@ -57,7 +59,9 @@ export async function signup(_prevState: AuthState, formData: FormData): Promise
   })
 
   if (error) {
-    return { error: getAuthErrorMessage(error.code, '회원가입 중 오류가 발생했습니다. 다시 시도해주세요') }
+    return {
+      error: getAuthErrorMessage(error.code, '회원가입 중 오류가 발생했습니다. 다시 시도해주세요'),
+    }
   }
 
   // Confirm email이 OFF인 경우 session이 즉시 생성됨

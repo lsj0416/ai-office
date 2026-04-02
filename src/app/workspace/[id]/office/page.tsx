@@ -1,9 +1,15 @@
-// TODO: Phase 2 - Pixi.js 2D 오피스 공간 구현
-export default function OfficePage() {
+import dynamic from 'next/dynamic'
+
+const OfficeCanvas = dynamic(() => import('@/components/office/OfficeCanvas'), { ssr: false })
+
+export default function OfficePage({ params }: { params: { id: string } }) {
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold text-gray-900">오피스</h1>
-      <p className="text-gray-500">에이전트들이 일하는 공간입니다.</p>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-gray-900">오피스</h1>
+        <p className="text-sm text-gray-500">AI 직원들이 일하는 공간입니다.</p>
+      </div>
+      <OfficeCanvas workspaceId={params.id} />
     </div>
   )
 }

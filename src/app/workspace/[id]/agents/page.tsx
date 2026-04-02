@@ -57,9 +57,8 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetchAgents()
-  }, [workspaceId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchAgents() }, [workspaceId])
 
   async function fetchAgents() {
     setIsLoading(true)

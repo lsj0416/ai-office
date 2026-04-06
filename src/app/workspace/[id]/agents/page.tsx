@@ -58,7 +58,9 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState('')
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchAgents() }, [workspaceId])
+  useEffect(() => {
+    fetchAgents()
+  }, [workspaceId])
 
   async function fetchAgents() {
     setIsLoading(true)

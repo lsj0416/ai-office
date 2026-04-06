@@ -14,34 +14,24 @@ export const T_BREAK = 4
 // Walkable tile set (desks block movement)
 export const WALKABLE_TILES = new Set([T_FLOOR, T_MEETING, T_BREAK])
 
-// Base colors
 export const COLORS = {
-  floor: 0xf0efe6,
-  wall: 0x3d3d4d,
-  wallAccent: 0x2d2d3d,
-  desk: 0xc4a572,
-  deskTop: 0xd4b882,
-  deskFront: 0xa07840,
-  deskLeg: 0x8a6530,
-  meeting: 0xdce8ff,
-  meetingBorder: 0xa8c4ff,
-  breakRoom: 0xdcf5dc,
-  breakBorder: 0xa8e0a8,
-  gridLine: 0xe5e4db,
-  player: 0xff6b35,
-  playerBorder: 0xcc4a10,
-  playerHair: 0xff9900,
-  proximityRing: 0xffeb3b,
-  labelBg: 0x000000,
-  // character
+  floorGrid: 0x314055,
+  player: 0x78a5ff,
+  playerHair: 0xa5c4ff,
+  proximityRing: 0xf8b84e,
+  selectedRing: 0x78a5ff,
+  bubbleBg: 0x0f172a,
+  bubbleText: 0xf8fafc,
+  nameplateBackground: 0x111827,
+  nameplateText: 0xf8fafc,
   skinTone: 0xffd8a8,
-  eyeColor: 0x222222,
-  nameplateBackground: 0x1a1a2e,
-  nameplateText: 0xffffff,
-  // desk accessories
-  monitorFrame: 0x333344,
-  monitorScreen: 0x4466aa,
-  keyboard: 0xccccdd,
+  floorLight: 0xe2ebf7,
+  deskTop: 0xb17a45,
+  deskFront: 0x8d5f32,
+  deskLeg: 0x6c4726,
+  monitorFrame: 0x263245,
+  monitorScreen: 0x78a5ff,
+  keyboard: 0xcbd5e1,
 } as const
 
 export const AGENT_ROLE_COLORS: Record<string, number> = {
@@ -62,73 +52,72 @@ export const AGENT_ROLE_HAIR_COLORS: Record<string, number> = {
   CUSTOM: 0x555555,
 }
 
-// Preset desk positions [col, row] on the 20×15 map
-export const DESK_POSITIONS: [number, number][] = [
-  [2, 2],
-  [5, 2],
-  [8, 2],
-  [11, 2],
-  [14, 2],
-  [17, 2],
-  [2, 4],
-  [5, 4],
-  [8, 4],
-  [11, 4],
-  [14, 4],
-  [17, 4],
+export type DeskFacing = 'north' | 'south' | 'east' | 'west'
+
+export interface DeskSceneConfig {
+  col: number
+  row: number
+  chairFacing: DeskFacing
+  chairOffsetX: number
+  chairOffsetY: number
+  pcFacing: DeskFacing
+  pcOffsetX: number
+  pcOffsetY: number
+  agentFacing: DeskFacing
+  agentOffsetX: number
+  agentOffsetY: number
+}
+
+// Tweak per-desk computer/agent facing and offsets here.
+export const DESK_SCENE_CONFIGS: DeskSceneConfig[] = [
+  { col: 3, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 3, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 6, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 6, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 12, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 15, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 12, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 15, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 3, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 6, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 12, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 15, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
 ]
 
-// Player start position (world pixels — center of tile 10,6)
+// Preset desk positions [col, row] on the 20×15 map
+export const DESK_POSITIONS: [number, number][] = DESK_SCENE_CONFIGS.map(
+  ({ col, row }) => [col, row] as [number, number]
+)
+
+// Player start position (world pixels — center of tile 10,8)
 export const PLAYER_START = {
   x: 10 * TILE_SIZE + TILE_SIZE / 2,
-  y: 6 * TILE_SIZE + TILE_SIZE / 2,
+  y: 8 * TILE_SIZE + TILE_SIZE / 2,
 }
 
 export const PLAYER_SPEED = 3 // pixels per ticker tick
-export const PLAYER_HALF = 14 // collision half-size (px)
-export const PROXIMITY_TILES = 2 // Manhattan tile distance for chat prompt
+export const PLAYER_HALF = 9 // collision half-size (px)
+export const PROXIMITY_TILES = 2
+export const PROXIMITY_RADIUS = TILE_SIZE * 1.6
+export const CHARACTER_SCALE = 2
+export const DESK_SCALE = 3
+export const TILE_TEXTURE_SCALE = 3
+export const WALL_TEXTURE_SCALE = 3
+export const PIXEL_SIZE = 4
 
-// ─── SD Character dimensions (feet = origin, y-up = negative) ────────────────
-export const CHAR = {
-  // Shadow
-  SHADOW_RX: 13,
-  SHADOW_RY: 4,
-  SHADOW_ALPHA: 0.25,
-  SHADOW_Y: 2,
-  // Head
-  HEAD_R: 13,
-  HEAD_CY: -35,
-  // Eyes
-  EYE_R: 2,
-  EYE_CY: -37,
-  EYE_OFFSET_X: 5,
-  // Body
-  BODY_W: 14,
-  BODY_H: 16,
-  BODY_TOP_Y: -28,
-  BODY_RADIUS: 4,
-  // Legs
-  LEG_W: 4,
-  LEG_H: 12,
-  LEG_TOP_Y: -12,
-  LEG_OFFSET_X: 4,
-  // Animation
-  IDLE_AMPLITUDE: 2,
-  IDLE_SPEED: 0.002,
-  WALK_AMPLITUDE: 4,
-  WALK_SPEED: 0.010,
-  // Nameplate
-  NAMEPLATE_Y: 8,
-  NAMEPLATE_PAD_X: 6,
-  NAMEPLATE_PAD_Y: 2,
-  NAMEPLATE_R: 5,
+// ─── Agent FSM parameters ─────────────────────────────────────────────────────
+export const AGENT_FSM = {
+  WANDER_INTERVAL_MIN: 8000,   // ms: minimum idle time before wandering
+  WANDER_INTERVAL_MAX: 20000,  // ms: maximum idle time before wandering
+  PHASE_OFFSET_MS: 1500,       // ms per deskIndex → desynchronises agents
+  MOVE_SPEED: 1.5,             // px per ticker tick (slower than player)
+  ARRIVAL_THRESHOLD: 5,        // px: distance to consider a waypoint "reached"
 } as const
 
-// ─── Desk 3D dimensions ───────────────────────────────────────────────────────
 export const DESK_3D = {
-  TOP_Y: 8,       // offset from tile top
-  TOP_H: 20,      // top face height
-  FRONT_H: 10,    // front face height
+  TOP_Y: 8,
+  TOP_H: 20,
+  FRONT_H: 10,
   LEG_W: 4,
   LEG_H: 6,
   MONITOR_W: 16,

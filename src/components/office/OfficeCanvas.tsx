@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import type { OfficeAgent, NearbyAgent } from '@/types/office'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentRole, AIModel, AgentStatus } from '@/types'
-import { DESK_POSITIONS } from './constants'
+import type { OfficeAgentViewModel } from '@/types/office'
+import { ZONE_COPY } from './manifest'
+import { toOfficeAgentViewModel } from './model'
 import { usePixiOffice } from './hooks/usePixiOffice'
 import ChatDialog from './ChatDialog'
 
@@ -23,86 +24,159 @@ interface AgentRow {
 export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const [agents, setAgents] = useState<OfficeAgent[]>([])
+  const [agents, setAgents] = useState<OfficeAgentViewModel[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [chatTarget, setChatTarget] = useState<NearbyAgent | null>(null)
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
 
-  // 에이전트 로드 + desk index 할당
+  useEffect(() => {
+    function syncViewport() {
+      setIsMobile(window.innerWidth < 1024)
+    }
+
+    syncViewport()
+    window.addEventListener('resize', syncViewport)
+    return () => window.removeEventListener('resize', syncViewport)
+  }, [])
+
   useEffect(() => {
     fetch(`/api/workspaces/${workspaceId}/agents`)
-      .then((r) => r.json())
+      .then((response) => response.json())
       .then((json) => {
         const rows: AgentRow[] = json.data ?? []
-        const officeAgents: OfficeAgent[] = rows
-          .slice(0, DESK_POSITIONS.length)
-          .map((a, i) => ({
-            id: a.id,
-            name: a.name,
-            role: a.role,
-            status: a.status,
-            persona: a.persona,
-            model: a.model,
-            deskIndex: i,
-          }))
+        const officeAgents = rows.map((agent, index) =>
+          toOfficeAgentViewModel(
+            {
+              id: agent.id,
+              name: agent.name,
+              role: agent.role,
+              status: agent.status,
+              persona: agent.persona,
+              model: agent.model,
+              deskIndex: index,
+            },
+            index + 1
+          )
+        )
         setAgents(officeAgents)
       })
       .finally(() => setIsLoading(false))
   }, [workspaceId])
 
-  const { nearbyAgent } = usePixiOffice({ containerRef, agents })
-
-  // E 키 → 대화 열기
   useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.code === 'KeyE' && nearbyAgent && !chatTarget) {
-        setChatTarget(nearbyAgent)
+    if (!selectedAgentId) return
+    if (!agents.some((agent) => agent.id === selectedAgentId)) {
+      setSelectedAgentId(null)
+    }
+  }, [agents, selectedAgentId])
+
+  const selectedAgent = useMemo(
+    () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
+    [agents, selectedAgentId]
+  )
+
+  const { nearbyAgent, activeZone } = usePixiOffice({
+    containerRef,
+    agents,
+    selectedAgentId,
+    onAgentSelect: (agent) => setSelectedAgentId(agent.id),
+    isMobile,
+  })
+
+  useEffect(() => {
+    if (isMobile) return
+
+    function handleKey(event: KeyboardEvent) {
+      if (event.code === 'KeyE' && nearbyAgent) {
+        setSelectedAgentId(nearbyAgent.agent.id)
       }
     }
+
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [nearbyAgent, chatTarget])
+  }, [isMobile, nearbyAgent])
 
   if (isLoading) {
     return (
-      <div className="flex h-96 items-center justify-center text-gray-400">
-        오피스 불러오는 중...
+      <div className="workspace-panel flex min-h-[720px] items-center justify-center text-[var(--workspace-muted)]">
+        오피스 캔버스를 재구성하는 중...
       </div>
     )
   }
 
+  const zoneInfo = ZONE_COPY[activeZone]
+
   return (
-    <div className="flex flex-col gap-3">
-      {/* 캔버스 래퍼 */}
-      <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-        <div ref={containerRef} />
-
-        {/* 근접 안내 */}
-        {nearbyAgent && !chatTarget && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-sm text-white backdrop-blur-sm">
-            <kbd className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs">E</kbd>
-            {' '}키를 눌러 <strong>{nearbyAgent.agent.name}</strong>에게 말 걸기
+    <div className="flex h-full flex-col">
+      <section className="grid h-full gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="workspace-panel flex min-h-[720px] flex-col p-3 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--workspace-muted)]">
+            <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+              직원 {agents.length}명
+            </span>
+            <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+              현재 구역 {zoneInfo.label}
+            </span>
+            <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+              {selectedAgent?.name ?? nearbyAgent?.agent.name ?? '선택된 직원 없음'}
+            </span>
           </div>
-        )}
 
-        {/* 채팅 다이얼로그 */}
-        {chatTarget && (
+          <div className="scanlines relative flex-1 overflow-hidden rounded-[28px] border border-[var(--workspace-line)] bg-[#f4f1ea]">
+            <div ref={containerRef} className="relative w-full" />
+
+            {!isMobile && nearbyAgent && !selectedAgent && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-amber-400/35 bg-black/70 px-4 py-2 text-sm text-white backdrop-blur">
+                <kbd className="rounded bg-white/15 px-2 py-1 text-xs">E</kbd> 를 눌러{' '}
+                <strong>{nearbyAgent.agent.name}</strong>과 대화하기
+              </div>
+            )}
+
+            {isMobile && (
+              <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-xs leading-5 text-[var(--office-text)] backdrop-blur">
+                모바일에서는 캐릭터를 탭해 채널을 열 수 있습니다.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--workspace-muted)]">
+            {!isMobile && (
+              <>
+                <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+                  이동: WASD / 방향키
+                </span>
+                <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+                  상호작용: E 또는 캐릭터 클릭
+                </span>
+              </>
+            )}
+            <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+              닫기: ESC
+            </span>
+            <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+              {zoneInfo.description}
+            </span>
+          </div>
+        </div>
+
+        {!isMobile && (
           <ChatDialog
-            nearbyAgent={chatTarget}
+            agent={selectedAgent}
             workspaceId={workspaceId}
-            onClose={() => setChatTarget(null)}
+            isMobile={false}
+            onClose={() => setSelectedAgentId(null)}
           />
         )}
-      </div>
+      </section>
 
-      {/* 조작 안내 */}
-      <div className="flex items-center gap-4 rounded-lg bg-gray-50 px-4 py-2 text-xs text-gray-500">
-        <span>이동: <kbd className="rounded bg-gray-200 px-1 font-mono">W</kbd><kbd className="rounded bg-gray-200 px-1 font-mono">A</kbd><kbd className="rounded bg-gray-200 px-1 font-mono">S</kbd><kbd className="rounded bg-gray-200 px-1 font-mono">D</kbd> 또는 방향키</span>
-        <span>대화: 직원에게 가까이 가서 <kbd className="rounded bg-gray-200 px-1 font-mono">E</kbd></span>
-        <span>닫기: <kbd className="rounded bg-gray-200 px-1 font-mono">ESC</kbd></span>
-        {agents.length > 0 && (
-          <span className="ml-auto text-gray-400">직원 {agents.length}명 재직 중</span>
-        )}
-      </div>
+      {isMobile && (
+        <ChatDialog
+          agent={selectedAgent}
+          workspaceId={workspaceId}
+          isMobile
+          onClose={() => setSelectedAgentId(null)}
+        />
+      )}
     </div>
   )
 }

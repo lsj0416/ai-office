@@ -31,17 +31,17 @@ export function createDeskSprite(PIXI: PIXI, config: DeskConfig): DeskSprite {
   const tileW = TILE_SIZE
   const tileH = TILE_SIZE
   const insetX = 4
-  const topW = tileW - insetX * 2   // 40px
+  const topW = tileW - insetX * 2 // 40px
 
-  // ── 1. 바닥 (타일 전체 floor 색) ─────────────────────────────────────────
+  // ── 1. 바닥 (체크무늬에 맞게 floorLight 사용) ────────────────────────────
   const floor = new PIXI.Graphics()
-  floor.beginFill(COLORS.floor)
+  floor.beginFill(COLORS.floorLight)
   floor.drawRect(0, 0, tileW, tileH)
   floor.endFill()
   root.addChild(floor)
 
   // ── 2. 위면 (top face) ────────────────────────────────────────────────────
-  const topY = DESK_3D.TOP_Y   // 8
+  const topY = DESK_3D.TOP_Y // 8
   const top = new PIXI.Graphics()
   top.beginFill(COLORS.deskTop)
   top.drawRect(insetX, topY, topW, DESK_3D.TOP_H)
@@ -57,7 +57,7 @@ export function createDeskSprite(PIXI: PIXI, config: DeskConfig): DeskSprite {
   root.addChild(top)
 
   // ── 3. 앞면 (front face) ──────────────────────────────────────────────────
-  const frontY = topY + DESK_3D.TOP_H   // 28
+  const frontY = topY + DESK_3D.TOP_H // 28
   const front = new PIXI.Graphics()
   front.beginFill(COLORS.deskFront)
   front.drawRect(insetX, frontY, topW, DESK_3D.FRONT_H)
@@ -70,7 +70,7 @@ export function createDeskSprite(PIXI: PIXI, config: DeskConfig): DeskSprite {
   root.addChild(front)
 
   // ── 4. 다리 ───────────────────────────────────────────────────────────────
-  const legY = frontY + DESK_3D.FRONT_H   // 38
+  const legY = frontY + DESK_3D.FRONT_H // 38
   const legs = new PIXI.Graphics()
   legs.beginFill(COLORS.deskLeg)
   // 왼쪽 다리
@@ -93,9 +93,14 @@ export function createDeskSprite(PIXI: PIXI, config: DeskConfig): DeskSprite {
   monitor.beginFill(COLORS.monitorScreen, 0.9)
   monitor.drawRect(monX + si, monY + si, DESK_3D.MONITOR_W - si * 2, DESK_3D.MONITOR_H - si * 2)
   monitor.endFill()
-  // 스크린 글로우 (미미한 하이라이트)
-  monitor.beginFill(0xffffff, 0.08)
+  // 스크린 글로우 (하이라이트)
+  monitor.beginFill(0xffffff, 0.15)
   monitor.drawRect(monX + si, monY + si, DESK_3D.MONITOR_W - si * 2, 3)
+  monitor.endFill()
+  // 픽셀 아트 느낌: 스크린에 2×2 픽셀 데코
+  monitor.beginFill(0x88aaff, 0.4)
+  monitor.drawRect(monX + si + 2, monY + si + 5, 2, 2)
+  monitor.drawRect(monX + si + 6, monY + si + 5, 2, 2)
   monitor.endFill()
   // 받침대
   monitor.beginFill(COLORS.monitorFrame)

@@ -180,9 +180,15 @@ src/
 - [x] 스프라이트 교체 가능 구조 (CharacterSprite 인터페이스)
 - [ ] 직원 행동 패턴 FSM (출퇴근 / 회의실 이동 / 탕비실 이동)
 
-### Phase 3 — 예정
-- [ ] RAG 파이프라인 (OpenAI Embeddings + Supabase pgvector)
-- [ ] 음성 회의 (Whisper STT + ElevenLabs TTS)
+### Phase 3 — 진행 중
+- [x] RAG 파이프라인 (OpenAI Embeddings + Supabase pgvector)
+  - embedText / saveMemory / searchMemories / buildRagContext (src/lib/ai/rag.ts)
+  - Memory REST API: GET 검색 / POST 저장 (src/app/api/memory/route.ts)
+  - Agent API & Orchestrate API에 RAG 컨텍스트 자동 주입
+- [x] 음성 회의 STT (Whisper whisper-1): POST /api/meeting — multipart audio → text
+- [x] 음성 회의 TTS (ElevenLabs eleven_multilingual_v2): POST /api/meeting/tts — text → audio/mpeg
+- [ ] 대화 완료 후 자동 메모리 저장 (클라이언트 훅 or Server Action)
+- [ ] 음성 회의 UI 컴포넌트 (마이크 녹음 → STT → 에이전트 응답 → TTS)
 
 ---
 

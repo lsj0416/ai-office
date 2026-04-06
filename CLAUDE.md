@@ -187,8 +187,10 @@ src/
   - Agent API & Orchestrate API에 RAG 컨텍스트 자동 주입
 - [x] 음성 회의 STT (Whisper whisper-1): POST /api/meeting — multipart audio → text
 - [x] 음성 회의 TTS (ElevenLabs eleven_multilingual_v2): POST /api/meeting/tts — text → audio/mpeg
-- [ ] 대화 완료 후 자동 메모리 저장 (클라이언트 훅 or Server Action)
-- [ ] 음성 회의 UI 컴포넌트 (마이크 녹음 → STT → 에이전트 응답 → TTS)
+- [x] 대화 완료 후 자동 메모리 저장 (ChatDialog 스트리밍 완료 시 /api/memory 저장)
+- [x] 음성 회의 UI 컴포넌트 (마이크 녹음 → STT → 에이전트 응답 스트리밍 → TTS 재생)
+  - VoiceMeetingPanel (src/components/meeting/VoiceMeetingPanel.tsx)
+  - /workspace/[id]/meeting 페이지 + 네비게이션 '회의' 탭
 
 ---
 

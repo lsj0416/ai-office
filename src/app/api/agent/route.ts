@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { runWorkerStream } from '@/lib/ai/worker'
-import { buildRagContext } from '@/lib/ai/rag'
+import { buildChatRagContext, buildRagContext } from '@/lib/ai/rag'
 import { createClient } from '@/lib/supabase/server'
 import { errorResponse } from '@/types/api'
 
@@ -19,6 +19,7 @@ const requestSchema = z.object({
     )
     .min(1),
   workspaceId: z.string().uuid().optional(),
+  threadId: z.string().uuid().optional(),
   workspaceContext: z.string().optional(),
 })
 
@@ -77,11 +78,18 @@ export async function POST(request: Request): Promise<Response> {
         .reverse()
         .find((m) => m.role === 'user')?.content
 
-      if (lastUserMessage) {
-        const ragContext = await buildRagContext(parsed.data.workspaceId, lastUserMessage)
-        if (ragContext) {
-          workspaceContext = workspaceContext ? `${workspaceContext}\n\n${ragContext}` : ragContext
-        }
+      const ragContext = parsed.data.threadId
+        ? await buildChatRagContext(parsed.data.workspaceId, {
+            messages: parsed.data.messages,
+            agentId: parsed.data.agentId,
+            threadId: parsed.data.threadId,
+          })
+        : lastUserMessage
+          ? await buildRagContext(parsed.data.workspaceId, lastUserMessage)
+          : ''
+
+      if (ragContext) {
+        workspaceContext = workspaceContext ? `${workspaceContext}\n\n${ragContext}` : ragContext
       }
     }
 

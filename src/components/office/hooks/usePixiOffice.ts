@@ -7,6 +7,8 @@ import {
   TILE_SIZE,
   MAP_COLS,
   MAP_ROWS,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
   T_FLOOR,
@@ -36,6 +38,7 @@ const CHAR_FRAME_H = 32
 const CHAR_FRAMES_PER_ROW = 7
 const CHARACTER_SCALE = 3
 const TILE_SCALE = TILE_TEXTURE_SCALE
+const CAMERA_LERP = 0.12
 
 interface UsePixiOfficeOptions {
   containerRef: React.RefObject<HTMLDivElement>
@@ -70,6 +73,10 @@ const DESK_COLLISION_OFFSET_X = 10
 const DESK_COLLISION_WIDTH = TILE_SIZE * 3 - 16
 const DESK_COLLISION_OFFSET_Y = 40
 const DESK_COLLISION_HEIGHT = TILE_SIZE + 14
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
 
 function intersectsDeskCollision(nx: number, ny: number, half: number) {
   const left = nx - half
@@ -110,12 +117,13 @@ function canMoveTo(nx: number, ny: number): boolean {
 }
 
 function resolveZone(worldX: number, worldY: number): OfficeZoneId {
-  const col = Math.floor(worldX / TILE_SIZE)
   const row = Math.floor(worldY / TILE_SIZE)
+  const col = Math.floor(worldX / TILE_SIZE)
 
   if (row <= 2) return 'branding'
-  if (row >= 10 && col <= 8) return 'meeting'
-  if (row >= 10 && col >= 11) return 'lounge'
+  const tileType = getTileType(col, row)
+  if (tileType === T_MEETING) return 'meeting'
+  if (tileType === T_BREAK) return 'lounge'
   return 'workbay'
 }
 
@@ -135,7 +143,7 @@ function createNameplate(PIXI: PIXI, text: string) {
   bg.endFill()
 
   const container = new PIXI.Container()
-  container.y = 10
+  container.y = -92
   container.addChild(bg)
   container.addChild(labelText)
   return container
@@ -411,6 +419,7 @@ export function usePixiOffice({
 
   useEffect(() => {
     if (!containerRef.current) return
+    const host = containerRef.current
 
     let destroyed = false
     let resizeObserver: ResizeObserver | null = null
@@ -419,7 +428,7 @@ export function usePixiOffice({
 
     async function init() {
       const PIXI = await import('pixi.js')
-      if (destroyed || !containerRef.current) return
+      if (destroyed) return
 
       const assetPaths = [
         OFFICE_THEME.assets.floors.work,
@@ -487,6 +496,10 @@ export function usePixiOffice({
       ] = textures
 
       const furnitureTextures = {
+        deskFront: deskTexture,
+        chairFront,
+        chairSide,
+        chairBack,
         whiteboard,
         bookshelf,
         doubleBookshelf,
@@ -513,7 +526,6 @@ export function usePixiOffice({
         resolution: window.devicePixelRatio || 1,
       })
 
-      const host = containerRef.current
       host.innerHTML = ''
       host.appendChild(app.view as HTMLCanvasElement)
       host.classList.add('pixel-canvas')
@@ -534,6 +546,10 @@ export function usePixiOffice({
       vignette.endFill()
       app.stage.addChild(vignette)
 
+      const worldRoot = new PIXI.Container()
+      worldRoot.sortableChildren = false
+      app.stage.addChild(worldRoot)
+
       const tileLayer = new PIXI.Container()
       const wallLayer = new PIXI.Container()
       wallLayer.sortableChildren = true
@@ -541,18 +557,18 @@ export function usePixiOffice({
       decorLayer.sortableChildren = true
       const actorLayer = new PIXI.Container()
       actorLayer.sortableChildren = true
-      app.stage.addChild(tileLayer)
-      app.stage.addChild(wallLayer)
-      app.stage.addChild(decorLayer)
-      app.stage.addChild(actorLayer)
+      worldRoot.addChild(tileLayer)
+      worldRoot.addChild(wallLayer)
+      worldRoot.addChild(decorLayer)
+      worldRoot.addChild(actorLayer)
 
       const grid = new PIXI.Graphics()
       const brandingStrip = new PIXI.Graphics()
       brandingStrip.beginFill(OFFICE_THEME.world.brandingWall, 1)
-      brandingStrip.drawRect(TILE_SIZE, TILE_SIZE, CANVAS_WIDTH - TILE_SIZE * 2, TILE_SIZE * 2)
+      brandingStrip.drawRect(TILE_SIZE, TILE_SIZE, WORLD_WIDTH - TILE_SIZE * 2, TILE_SIZE * 2)
       brandingStrip.endFill()
       brandingStrip.beginFill(OFFICE_THEME.world.brandingTrim, 0.75)
-      brandingStrip.drawRect(TILE_SIZE, TILE_SIZE * 3 - 10, CANVAS_WIDTH - TILE_SIZE * 2, 10)
+      brandingStrip.drawRect(TILE_SIZE, TILE_SIZE * 3 - 10, WORLD_WIDTH - TILE_SIZE * 2, 10)
       brandingStrip.endFill()
       tileLayer.addChild(brandingStrip)
 
@@ -640,6 +656,33 @@ export function usePixiOffice({
 
       let playerX = PLAYER_START.x
       let playerY = PLAYER_START.y
+      let cameraX = 0
+      let cameraY = 0
+      const maxCameraX = Math.max(0, WORLD_WIDTH - CANVAS_WIDTH)
+      const maxCameraY = Math.max(0, WORLD_HEIGHT - CANVAS_HEIGHT)
+
+      function setCameraPosition(nextX: number, nextY: number) {
+        cameraX = clamp(nextX, 0, maxCameraX)
+        cameraY = clamp(nextY, 0, maxCameraY)
+        worldRoot.x = -Math.round(cameraX)
+        worldRoot.y = -Math.round(cameraY)
+      }
+
+      function updateCamera(targetX: number, targetY: number, immediate = false) {
+        const desiredX = clamp(targetX - CANVAS_WIDTH / 2, 0, maxCameraX)
+        const desiredY = clamp(targetY - CANVAS_HEIGHT / 2, 0, maxCameraY)
+
+        if (immediate) {
+          setCameraPosition(desiredX, desiredY)
+          return
+        }
+
+        setCameraPosition(
+          cameraX + (desiredX - cameraX) * CAMERA_LERP,
+          cameraY + (desiredY - cameraY) * CAMERA_LERP
+        )
+      }
+
       const playerNode: CharacterNode = {
         agent: null,
         container: playerContainer,
@@ -655,6 +698,7 @@ export function usePixiOffice({
         worldY: playerY,
         preferredDirection: 'down',
       }
+      updateCamera(playerX, playerY, true)
 
       const agentNodes: CharacterNode[] = agents.map((agent, index) => {
         const layout = getDeskSceneConfig(agent.deskIndex)
@@ -848,6 +892,14 @@ export function usePixiOffice({
           agentNodes.find((node) => node.agent?.id === selectedAgentIdRef.current) ??
           agentNodes.find((node) => node.agent?.id === nearby?.agent.id)
 
+        const cameraTarget = isMobile
+          ? highlighted
+            ? { x: highlighted.worldX, y: highlighted.worldY - TILE_SIZE * 2 }
+            : { x: PLAYER_START.x, y: PLAYER_START.y - TILE_SIZE }
+          : { x: playerX, y: playerY - TILE_SIZE * 1.5 }
+
+        updateCamera(cameraTarget.x, cameraTarget.y)
+
         if (highlighted?.agent) {
           selectionRing.visible = true
           selectionRing.clear()
@@ -876,9 +928,9 @@ export function usePixiOffice({
       destroyed = true
       removeKeyboardListeners()
       resizeObserver?.disconnect()
-      containerRef.current?.classList.remove('pixel-canvas')
+      host.classList.remove('pixel-canvas')
       app?.destroy(true, { children: true })
-      containerRef.current?.replaceChildren()
+      host.replaceChildren()
       nearbyAgentIdRef.current = null
       setNearbyAgent(null)
     }

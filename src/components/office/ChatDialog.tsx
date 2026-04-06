@@ -134,6 +134,8 @@ export default function ChatDialog({ agent, workspaceId, isMobile, onClose }: Ch
           persona: agent.persona,
           role: agent.role,
           model: agent.model,
+          workspaceId,
+          threadId,
           messages: nextMessages.map((message) => ({
             role: message.role as 'user' | 'assistant',
             content: message.content,
@@ -164,6 +166,21 @@ export default function ChatDialog({ agent, workspaceId, isMobile, onClose }: Ch
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'assistant', content: fullContent }),
         })
+
+        // 대화 완료 후 RAG 메모리 자동 저장 (fire-and-forget)
+        void fetch('/api/memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workspaceId,
+            content: `사용자: ${trimmed}\n${agent.name}: ${fullContent}`,
+            metadata: {
+              type: 'conversation',
+              agent_id: agent.id,
+              thread_id: threadId,
+            },
+          }),
+        })
       }
     } catch {
       setMessages((prev) =>
@@ -192,7 +209,9 @@ export default function ChatDialog({ agent, workspaceId, isMobile, onClose }: Ch
         data-testid="office-chat-sidebar"
         className="workspace-panel flex h-full min-h-[820px] flex-col items-center justify-center px-6 py-10 text-center"
       >
-        <h2 className="text-xl font-semibold text-[var(--workspace-text)]">대화할 에이전트를 선택하세요</h2>
+        <h2 className="text-xl font-semibold text-[var(--workspace-text)]">
+          대화할 에이전트를 선택하세요
+        </h2>
         <p className="mt-3 max-w-sm text-sm leading-6 text-[var(--workspace-muted)]">
           가까이 다가가서 <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs">E</kbd>를
           누르거나, 오피스 안의 캐릭터를 클릭하면 우측 패널에서 바로 대화를 이어갈 수 있습니다.
@@ -211,7 +230,9 @@ export default function ChatDialog({ agent, workspaceId, isMobile, onClose }: Ch
       <div className="border-b border-[var(--workspace-line)] px-4 py-4 sm:px-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-[var(--workspace-text)]">{agent.name}</h2>
+            <h2 className="truncate text-lg font-semibold text-[var(--workspace-text)]">
+              {agent.name}
+            </h2>
             <p className="mt-1 text-sm text-[var(--workspace-muted)]">
               {agent.role} · {agent.statusLabel}
             </p>

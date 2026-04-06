@@ -1,8 +1,12 @@
 export const TILE_SIZE = 48
-export const MAP_COLS = 20
-export const MAP_ROWS = 15
-export const CANVAS_WIDTH = TILE_SIZE * MAP_COLS // 960
-export const CANVAS_HEIGHT = TILE_SIZE * MAP_ROWS // 720
+export const MAP_COLS = 28
+export const MAP_ROWS = 18
+export const VIEWPORT_COLS = 20
+export const VIEWPORT_ROWS = 15
+export const WORLD_WIDTH = TILE_SIZE * MAP_COLS
+export const WORLD_HEIGHT = TILE_SIZE * MAP_ROWS
+export const CANVAS_WIDTH = TILE_SIZE * VIEWPORT_COLS // 960
+export const CANVAS_HEIGHT = TILE_SIZE * VIEWPORT_ROWS // 720
 
 // Tile type IDs
 export const T_FLOOR = 0
@@ -70,28 +74,28 @@ export interface DeskSceneConfig {
 
 // Tweak per-desk computer/agent facing and offsets here.
 export const DESK_SCENE_CONFIGS: DeskSceneConfig[] = [
-  { col: 3, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 3, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 6, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 6, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 12, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 15, row: 2, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 12, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 15, row: 3, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 3, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 6, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 12, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 15, row: 7, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 4, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 4, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 8, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 8, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 17, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 21, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 17, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 21, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
+  { col: 4, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 8, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 17, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
+  { col: 21, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
 ]
 
-// Preset desk positions [col, row] on the 20×15 map
+// Preset desk positions on the 28×18 office world
 export const DESK_POSITIONS: [number, number][] = DESK_SCENE_CONFIGS.map(
   ({ col, row }) => [col, row] as [number, number]
 )
 
-// Player start position (world pixels — center of tile 10,8)
+// Player start position (world pixels — center of the work bay)
 export const PLAYER_START = {
-  x: 10 * TILE_SIZE + TILE_SIZE / 2,
+  x: 14 * TILE_SIZE + TILE_SIZE / 2,
   y: 8 * TILE_SIZE + TILE_SIZE / 2,
 }
 

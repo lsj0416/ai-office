@@ -4,6 +4,16 @@ import type { MemoryMetadata } from '@/types/database'
 
 const EMBEDDING_MODEL = 'text-embedding-3-small'
 const EMBEDDING_DIMENSIONS = 1536
+const CHAT_RAG_CANDIDATE_COUNT = 10
+const CHAT_RAG_MAX_ITEMS = 6
+const CHAT_RAG_MAX_CHARS = 1800
+
+type RetrievedMemory = {
+  id: string
+  content: string
+  metadata: MemoryMetadata
+  similarity: number
+}
 
 export async function embedText(text: string): Promise<number[]> {
   if (!process.env.OPENAI_API_KEY) {
@@ -45,7 +55,7 @@ export async function searchMemories(
   query: string,
   matchCount = 5,
   matchThreshold = 0.7
-): Promise<Array<{ id: string; content: string; metadata: MemoryMetadata; similarity: number }>> {
+): Promise<RetrievedMemory[]> {
   const embedding = await embedText(query)
   const supabase = await createClient()
 
@@ -57,12 +67,7 @@ export async function searchMemories(
   })
 
   if (error) return []
-  return (data ?? []) as Array<{
-    id: string
-    content: string
-    metadata: MemoryMetadata
-    similarity: number
-  }>
+  return (data ?? []) as RetrievedMemory[]
 }
 
 // 쿼리에 맞는 관련 히스토리를 컨텍스트 문자열로 반환
@@ -72,4 +77,144 @@ export async function buildRagContext(workspaceId: string, query: string): Promi
 
   const contextLines = memories.map((m) => `- ${m.content}`).join('\n')
   return `[관련 대화 히스토리]\n${contextLines}`
+}
+
+function normalizeMemoryType(type: MemoryMetadata['type']): string {
+  switch (type) {
+    case 'weekly_summary':
+      return '주간 요약'
+    case 'meeting_note':
+      return '회의 메모'
+    case 'document':
+      return '문서'
+    case 'conversation':
+    default:
+      return '대화 기억'
+  }
+}
+
+function compactText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+function buildChatSearchQuery(
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+): string {
+  const recentMessages = messages.slice(-4)
+  const latestUserMessage =
+    [...messages].reverse().find((message) => message.role === 'user')?.content ?? ''
+
+  const transcript = recentMessages
+    .map((message) => `${message.role === 'user' ? '사용자' : '에이전트'}: ${compactText(message.content)}`)
+    .join('\n')
+
+  return latestUserMessage ? `${latestUserMessage}\n\n${transcript}` : transcript
+}
+
+function scoreChatMemory(
+  memory: RetrievedMemory,
+  {
+    agentId,
+    threadId,
+  }: {
+    agentId?: string
+    threadId?: string
+  }
+): number {
+  let score = memory.similarity * 100
+
+  if (memory.metadata.agent_id && memory.metadata.agent_id === agentId) score += 18
+  if (memory.metadata.thread_id && memory.metadata.thread_id === threadId) score += 24
+
+  switch (memory.metadata.type) {
+    case 'weekly_summary':
+      score += 10
+      break
+    case 'meeting_note':
+      score += 6
+      break
+    case 'document':
+      score += 4
+      break
+    case 'conversation':
+    default:
+      score += 8
+      break
+  }
+
+  return score
+}
+
+function formatChatMemories(memories: RetrievedMemory[]): string {
+  const lines: string[] = []
+  let usedChars = 0
+
+  for (const memory of memories) {
+    const label = normalizeMemoryType(memory.metadata.type)
+    const sourceParts = [label]
+    if (memory.metadata.agent_id) sourceParts.push(`agent:${memory.metadata.agent_id}`)
+    if (memory.metadata.thread_id) sourceParts.push(`thread:${memory.metadata.thread_id}`)
+    if (memory.metadata.source) sourceParts.push(String(memory.metadata.source))
+
+    const entry = `- [${sourceParts.join(' / ')}] ${compactText(memory.content)}`
+
+    if (usedChars + entry.length > CHAT_RAG_MAX_CHARS) break
+
+    lines.push(entry)
+    usedChars += entry.length
+  }
+
+  if (lines.length === 0) return ''
+
+  return [
+    '[기억된 관련 맥락]',
+    ...lines,
+    '',
+    '[기억 사용 원칙]',
+    '- 아래 기억은 현재 1:1 대화와 관련 있는 과거 기록이다.',
+    '- 현재 대화와 충돌하면 현재 대화를 우선한다.',
+    '- 기억을 활용해 맥락을 이어가되, 사실이 불확실하면 단정하지 않는다.',
+  ].join('\n')
+}
+
+export async function buildChatRagContext(
+  workspaceId: string,
+  {
+    messages,
+    agentId,
+    threadId,
+  }: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>
+    agentId?: string
+    threadId?: string
+  }
+): Promise<string> {
+  const query = buildChatSearchQuery(messages)
+  if (!query) return ''
+
+  const candidates = await searchMemories(
+    workspaceId,
+    query,
+    CHAT_RAG_CANDIDATE_COUNT,
+    0.55
+  )
+
+  if (candidates.length === 0) return ''
+
+  const deduped = new Map<string, RetrievedMemory>()
+  for (const candidate of candidates) {
+    const key = compactText(candidate.content)
+    if (!key || deduped.has(key)) continue
+    deduped.set(key, candidate)
+  }
+
+  const ranked = Array.from(deduped.values())
+    .sort(
+      (left, right) =>
+        scoreChatMemory(right, { agentId, threadId }) -
+        scoreChatMemory(left, { agentId, threadId })
+    )
+    .slice(0, CHAT_RAG_MAX_ITEMS)
+
+  return formatChatMemories(ranked)
 }

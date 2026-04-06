@@ -110,6 +110,8 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           persona: selectedAgent.persona,
           role: selectedAgent.role,
           model: selectedAgent.model,
+          workspaceId,
+          threadId,
           messages: nextMessages.map((m) => ({
             role: m.role as 'user' | 'assistant',
             content: m.content,
@@ -147,6 +149,20 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'assistant', content: fullContent }),
+        })
+
+        void fetch('/api/memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workspaceId,
+            content: `사용자: ${trimmed}\n${selectedAgent.name}: ${fullContent}`,
+            metadata: {
+              type: 'conversation',
+              agent_id: selectedAgent.id,
+              thread_id: threadId,
+            },
+          }),
         })
       }
     } catch {

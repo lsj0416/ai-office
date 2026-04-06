@@ -2,10 +2,6 @@ import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { errorResponse, successResponse } from '@/types/api'
 
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1'
-// 기본 음성 ID (Rachel - 자연스러운 영어/한국어 지원)
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
-
 // POST /api/meeting/stt — 음성 → 텍스트 (Whisper)
 // multipart/form-data: { audio: File }
 export async function POST(request: Request): Promise<Response> {

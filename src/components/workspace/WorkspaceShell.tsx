@@ -7,6 +7,7 @@ const navItems = [
   { href: 'office', label: '오피스' },
   { href: 'auto', label: 'AUTO' },
   { href: 'chat', label: '채팅' },
+  { href: 'meeting', label: '회의' },
   { href: 'agents', label: '팀' },
   { href: 'tasks', label: '태스크' },
 ] as const

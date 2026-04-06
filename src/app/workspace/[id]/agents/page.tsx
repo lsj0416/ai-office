@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { type AgentRole, type AIModel } from '@/types'
 
 interface AgentRow {
@@ -57,18 +57,17 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    fetchAgents()
-  }, [workspaceId])
-
-  async function fetchAgents() {
+  const fetchAgents = useCallback(async () => {
     setIsLoading(true)
     const res = await fetch(`/api/workspaces/${workspaceId}/agents`)
     const json = await res.json()
     if (json.data) setAgents(json.data)
     setIsLoading(false)
-  }
+  }, [workspaceId])
+
+  useEffect(() => {
+    void fetchAgents()
+  }, [fetchAgents])
 
   function openAddForm() {
     setEditingAgent(null)

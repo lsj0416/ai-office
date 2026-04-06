@@ -167,7 +167,7 @@ export default function AutoPage({ params }: { params: { id: string } }) {
               <p className="mb-3 text-4xl">⚡</p>
               <p className="text-sm">요청을 입력하면 AI 팀이 협력해서 처리합니다.</p>
               <p className="mt-1 text-xs text-gray-300">
-                예: "랜딩 페이지 전략을 세우고 카피를 작성해줘"
+                {'예: "랜딩 페이지 전략을 세우고 카피를 작성해줘"'}
               </p>
             </div>
           </div>

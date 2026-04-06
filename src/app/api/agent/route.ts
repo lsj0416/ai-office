@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { runWorkerStream } from '@/lib/ai/worker'
+import { buildRagContext } from '@/lib/ai/rag'
 import { createClient } from '@/lib/supabase/server'
 import { errorResponse } from '@/types/api'
 
@@ -17,6 +18,7 @@ const requestSchema = z.object({
       })
     )
     .min(1),
+  workspaceId: z.string().uuid().optional(),
   workspaceContext: z.string().optional(),
 })
 
@@ -68,13 +70,28 @@ export async function POST(request: Request): Promise<Response> {
       return errorResponse('에이전트 정보가 올바르지 않습니다', 400)
     }
 
+    // RAG 컨텍스트 생성 (workspaceId가 있을 때만)
+    let workspaceContext = parsed.data.workspaceContext
+    if (parsed.data.workspaceId) {
+      const lastUserMessage = [...parsed.data.messages]
+        .reverse()
+        .find((m) => m.role === 'user')?.content
+
+      if (lastUserMessage) {
+        const ragContext = await buildRagContext(parsed.data.workspaceId, lastUserMessage)
+        if (ragContext) {
+          workspaceContext = workspaceContext ? `${workspaceContext}\n\n${ragContext}` : ragContext
+        }
+      }
+    }
+
     const stream = await runWorkerStream({
       role: parsed.data.role,
       agentName: parsed.data.agentName,
       persona: parsed.data.persona,
       model: parsed.data.model,
       messages: parsed.data.messages,
-      workspaceContext: parsed.data.workspaceContext,
+      workspaceContext,
     })
 
     return new Response(stream, {

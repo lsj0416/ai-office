@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createOrchestrationPlan } from '@/lib/ai/orchestrator'
 import { runWorkerStream } from '@/lib/ai/worker'
+import { buildRagContext } from '@/lib/ai/rag'
 import { errorResponse } from '@/types/api'
 
 const requestSchema = z.object({
@@ -68,7 +69,10 @@ export async function POST(request: Request): Promise<Response> {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        // 1. 오케스트레이터가 실행 계획 수립
+        // 1. RAG 컨텍스트 조회
+        const ragContext = await buildRagContext(workspaceId, message).catch(() => '')
+
+        // 2. 오케스트레이터가 실행 계획 수립
         const plan = await createOrchestrationPlan(message, agentList)
 
         controller.enqueue(
@@ -119,6 +123,7 @@ export async function POST(request: Request): Promise<Response> {
             persona: step.persona,
             model: step.model,
             messages: workerMessages,
+            workspaceContext: ragContext || undefined,
           })
 
           const reader = workerStream.getReader()

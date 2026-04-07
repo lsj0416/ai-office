@@ -2,7 +2,7 @@
 // 스키마 변경 시 supabase/migrations/ 와 함께 업데이트해주세요.
 // 추후: supabase gen types typescript --project-id <id> > src/types/database.ts
 
-import type { AgentRole, AgentStatus, AIModel, TaskStatus } from './index'
+import type { AgentRole, AgentStatus, AIModel, TaskStatus, PersonaDetail } from './index'
 
 export interface Database {
   PostgrestVersion: '12'
@@ -43,6 +43,7 @@ export interface Database {
           role: AgentRole
           name: string
           persona: string
+          persona_detail: PersonaDetail | null
           avatar: string | null
           model: AIModel
           status: AgentStatus
@@ -56,6 +57,7 @@ export interface Database {
           role: AgentRole
           name: string
           persona: string
+          persona_detail?: PersonaDetail | null
           avatar?: string | null
           model?: AIModel
           status?: AgentStatus
@@ -67,6 +69,7 @@ export interface Database {
           role?: AgentRole
           name?: string
           persona?: string
+          persona_detail?: PersonaDetail | null
           avatar?: string | null
           model?: AIModel
           status?: AgentStatus

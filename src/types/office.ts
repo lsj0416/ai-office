@@ -5,6 +5,7 @@ export type OfficeZoneId = 'branding' | 'workbay' | 'meeting' | 'lounge'
 export type OfficeVisualState = 'typing' | 'thinking' | 'idle' | 'meeting' | 'break'
 export type OfficePropKind = 'wall' | 'floor'
 export type OfficeTileAnchor = 'top-left' | 'bottom-left' | 'bottom-center'
+export type OfficeMeetingStatus = 'gathering' | 'running' | 'done' | 'error'
 
 export interface TilePos {
   col: number
@@ -57,4 +58,32 @@ export interface OfficePropPlacement {
   sortBaseY?: number
   scale?: number
   mirror?: boolean
+}
+
+export interface OfficeMeetingSeatAssignment {
+  col: number
+  row: number
+}
+
+export interface OfficeMeetingStep {
+  agentId: string
+  agentName: string
+  role: AgentRole
+  subTask: string
+}
+
+export interface OfficeMeetingResult extends OfficeMeetingStep {
+  content: string
+  done: boolean
+}
+
+export interface OfficeMeetingSession {
+  id: string
+  agenda: string
+  participantIds: string[]
+  seatAssignments: Record<string, OfficeMeetingSeatAssignment>
+  status: OfficeMeetingStatus
+  analysis: string
+  results: OfficeMeetingResult[]
+  error: string
 }

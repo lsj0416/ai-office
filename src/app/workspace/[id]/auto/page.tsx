@@ -1,7 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { type AgentRole } from '@/types'
+import { useEffect, useRef, useState } from 'react'
+import type { Agent, AgentRole } from '@/types'
+
+// ─── 공통 타입 ──────────────────────────────────────────────
 
 interface PlanStep {
   agentId: string
@@ -27,6 +29,18 @@ interface RunState {
   error: string
 }
 
+interface ManualStep {
+  key: string // UI 식별용 고유 키
+  agentId: string
+  agentName: string
+  role: AgentRole
+  subTask: string
+}
+
+type Mode = 'auto' | 'manual'
+
+// ─── 스타일 상수 ─────────────────────────────────────────────
+
 const ROLE_COLORS: Record<AgentRole, string> = {
   PM: 'bg-blue-100 text-blue-700 border-blue-200',
   DEVELOPER: 'bg-purple-100 text-purple-700 border-purple-200',
@@ -36,26 +50,96 @@ const ROLE_COLORS: Record<AgentRole, string> = {
   CUSTOM: 'bg-gray-100 text-gray-700 border-gray-200',
 }
 
+// ─── 컴포넌트 ────────────────────────────────────────────────
+
 export default function AutoPage({ params }: { params: { id: string } }) {
   const workspaceId = params.id
+
+  // 공통
+  const [mode, setMode] = useState<Mode>('auto')
   const [input, setInput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [runState, setRunState] = useState<RunState | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  // 수동 모드
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [manualSteps, setManualSteps] = useState<ManualStep[]>([])
+
+  // 에이전트 목록 로드
+  useEffect(() => {
+    fetch(`/api/workspaces/${workspaceId}/agents`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data && Array.isArray(json.data)) {
+          setAgents(json.data as Agent[])
+        }
+      })
+      .catch(() => {})
+  }, [workspaceId])
+
+  // ── 수동 스텝 조작 ──
+
+  function addManualStep(agent: Agent) {
+    setManualSteps((prev) => [
+      ...prev,
+      {
+        key: crypto.randomUUID(),
+        agentId: agent.id,
+        agentName: agent.name,
+        role: agent.role,
+        subTask: '',
+      },
+    ])
+  }
+
+  function removeManualStep(key: string) {
+    setManualSteps((prev) => prev.filter((s) => s.key !== key))
+  }
+
+  function updateSubTask(key: string, value: string) {
+    setManualSteps((prev) => prev.map((s) => (s.key === key ? { ...s, subTask: value } : s)))
+  }
+
+  function moveStep(key: string, direction: 'up' | 'down') {
+    setManualSteps((prev) => {
+      const idx = prev.findIndex((s) => s.key === key)
+      if (idx === -1) return prev
+      const next = direction === 'up' ? idx - 1 : idx + 1
+      if (next < 0 || next >= prev.length) return prev
+      const arr = [...prev]
+      ;[arr[idx], arr[next]] = [arr[next]!, arr[idx]!]
+      return arr
+    })
+  }
+
+  // ── 실행 ──
+
+  const canRun =
+    input.trim() !== '' &&
+    !isRunning &&
+    (mode === 'auto' || (manualSteps.length > 0 && manualSteps.every((s) => s.subTask.trim())))
+
   async function handleRun() {
-    const trimmed = input.trim()
-    if (!trimmed || isRunning) return
+    if (!canRun) return
 
     setInput('')
     setIsRunning(true)
     setRunState(null)
 
+    const body: Record<string, unknown> = { workspaceId, message: input.trim() }
+    if (mode === 'manual') {
+      body.manualSteps = manualSteps.map((s) => ({
+        agentId: s.agentId,
+        subTask: s.subTask.trim(),
+      }))
+    }
+
     try {
       const res = await fetch('/api/orchestrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId, message: trimmed }),
+        body: JSON.stringify(body),
       })
 
       if (!res.ok || !res.body) {
@@ -65,7 +149,7 @@ export default function AutoPage({ params }: { params: { id: string } }) {
           steps: [],
           results: [],
           isDone: true,
-          error: err.error ?? '실행 실패',
+          error: (err as { error?: string }).error ?? '실행 실패',
         })
         return
       }
@@ -142,21 +226,152 @@ export default function AutoPage({ params }: { params: { id: string } }) {
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleRun()
+      void handleRun()
     }
   }
 
-  // 현재 실행 중인 에이전트 인덱스
   const activeIndex = runState?.results.findIndex((r) => !r.done && r.content !== '') ?? -1
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* 헤더 */}
+      {/* 헤더 + 모드 토글 */}
       <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <h1 className="text-lg font-bold text-gray-900">AUTO 실행</h1>
-        <p className="text-sm text-gray-500">
-          요청을 입력하면 AI가 적합한 에이전트를 선택해 순차적으로 실행합니다.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">AUTO 실행</h1>
+            <p className="text-sm text-gray-500">
+              {mode === 'auto'
+                ? 'AI가 적합한 에이전트를 선택해 순차적으로 실행합니다.'
+                : '에이전트와 실행 순서를 직접 지정합니다.'}
+            </p>
+          </div>
+
+          {/* 모드 토글 */}
+          <div className="flex rounded-xl border border-gray-200 p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setMode('auto')}
+              className={`rounded-lg px-4 py-1.5 font-medium transition ${
+                mode === 'auto'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              자동
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('manual')}
+              className={`rounded-lg px-4 py-1.5 font-medium transition ${
+                mode === 'manual'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              수동
+            </button>
+          </div>
+        </div>
+
+        {/* 수동 모드: 에이전트 선택 패널 */}
+        {mode === 'manual' && (
+          <div className="mt-4 flex flex-col gap-3">
+            {/* 팀 에이전트 목록 */}
+            {agents.length === 0 ? (
+              <p className="text-sm text-gray-400">팀 탭에서 에이전트를 먼저 추가하세요.</p>
+            ) : (
+              <div>
+                <p className="mb-2 text-xs font-semibold text-gray-400">에이전트 추가</p>
+                <div className="flex flex-wrap gap-2">
+                  {agents.map((agent) => (
+                    <button
+                      key={agent.id}
+                      type="button"
+                      onClick={() => addManualStep(agent)}
+                      disabled={isRunning}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition hover:shadow-sm disabled:opacity-50 ${ROLE_COLORS[agent.role]}`}
+                    >
+                      <span className="font-bold">+</span>
+                      {agent.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 선택된 스텝 목록 */}
+            {manualSteps.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-semibold text-gray-400">
+                  실행 순서 ({manualSteps.length}개)
+                </p>
+                <div className="flex flex-col gap-2">
+                  {manualSteps.map((step, i) => (
+                    <div
+                      key={step.key}
+                      className="flex items-start gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2"
+                    >
+                      {/* 순서 번호 */}
+                      <span className="mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
+                        {i + 1}
+                      </span>
+
+                      {/* 에이전트 이름 */}
+                      <div className="mt-1.5 shrink-0">
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[step.role]}`}
+                        >
+                          {step.agentName}
+                        </span>
+                      </div>
+
+                      {/* 서브태스크 입력 */}
+                      <input
+                        type="text"
+                        value={step.subTask}
+                        onChange={(e) => updateSubTask(step.key, e.target.value)}
+                        placeholder="이 에이전트가 수행할 작업을 입력하세요"
+                        disabled={isRunning}
+                        className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-400 disabled:opacity-60"
+                      />
+
+                      {/* 이동/삭제 버튼 */}
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveStep(step.key, 'up')}
+                          disabled={i === 0 || isRunning}
+                          className="rounded px-1 py-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-20"
+                          aria-label="위로"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveStep(step.key, 'down')}
+                          disabled={i === manualSteps.length - 1 || isRunning}
+                          className="rounded px-1 py-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-20"
+                          aria-label="아래로"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeManualStep(step.key)}
+                          disabled={isRunning}
+                          className="rounded px-1 py-0.5 text-red-300 hover:text-red-500 disabled:opacity-20"
+                          aria-label="삭제"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 결과 영역 */}
@@ -165,10 +380,20 @@ export default function AutoPage({ params }: { params: { id: string } }) {
           <div className="flex h-full items-center justify-center">
             <div className="text-center text-gray-400">
               <p className="mb-3 text-4xl">⚡</p>
-              <p className="text-sm">요청을 입력하면 AI 팀이 협력해서 처리합니다.</p>
-              <p className="mt-1 text-xs text-gray-300">
-                {'예: "랜딩 페이지 전략을 세우고 카피를 작성해줘"'}
-              </p>
+              {mode === 'auto' ? (
+                <>
+                  <p className="text-sm">요청을 입력하면 AI 팀이 협력해서 처리합니다.</p>
+                  <p className="mt-1 text-xs text-gray-300">
+                    {'예: "랜딩 페이지 전략을 세우고 카피를 작성해줘"'}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm">
+                  {manualSteps.length === 0
+                    ? '위에서 에이전트를 추가하고 각 작업을 입력하세요.'
+                    : '전체 목표를 입력하고 실행을 누르세요.'}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -178,13 +403,14 @@ export default function AutoPage({ params }: { params: { id: string } }) {
             {/* 오케스트레이터 분석 */}
             {runState.analysis && (
               <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <p className="mb-1 text-xs font-semibold text-gray-400">오케스트레이터 분석</p>
+                <p className="mb-1 text-xs font-semibold text-gray-400">
+                  {mode === 'manual' ? '수동 실행 계획' : '오케스트레이터 분석'}
+                </p>
                 <p className="text-sm text-gray-700">{runState.analysis}</p>
 
-                {/* 실행 순서 */}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {runState.steps.map((step, i) => (
-                    <div key={step.agentId} className="flex items-center gap-1">
+                    <div key={`${step.agentId}-${i}`} className="flex items-center gap-1">
                       {i > 0 && <span className="text-xs text-gray-300">→</span>}
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[step.role]}`}
@@ -200,12 +426,13 @@ export default function AutoPage({ params }: { params: { id: string } }) {
             {/* 에이전트별 결과 */}
             {runState.results.map((result, i) => (
               <div
-                key={result.agentId}
+                key={`${result.agentId}-${i}`}
                 className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100"
               >
-                {/* 에이전트 헤더 */}
                 <div
-                  className={`flex items-center justify-between border-b border-gray-100 px-4 py-2.5 ${result.done ? 'bg-white' : activeIndex === i ? 'bg-blue-50' : 'bg-gray-50'}`}
+                  className={`flex items-center justify-between border-b border-gray-100 px-4 py-2.5 ${
+                    result.done ? 'bg-white' : activeIndex === i ? 'bg-blue-50' : 'bg-gray-50'
+                  }`}
                 >
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
@@ -232,7 +459,6 @@ export default function AutoPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
 
-                {/* 응답 내용 */}
                 <div className="px-4 py-3">
                   {result.content ? (
                     <p className="whitespace-pre-wrap text-sm text-gray-700">{result.content}</p>
@@ -270,19 +496,28 @@ export default function AutoPage({ params }: { params: { id: string } }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="AI 팀에게 작업을 맡겨보세요 (Shift+Enter: 줄바꿈)"
+            placeholder={
+              mode === 'auto'
+                ? 'AI 팀에게 작업을 맡겨보세요 (Shift+Enter: 줄바꿈)'
+                : '전체 목표를 입력하세요 (각 에이전트에게 맥락으로 전달됩니다)'
+            }
             rows={2}
             disabled={isRunning}
             className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none disabled:opacity-50"
           />
           <button
-            onClick={handleRun}
-            disabled={!input.trim() || isRunning}
+            onClick={() => void handleRun()}
+            disabled={!canRun}
             className="self-end rounded-xl bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
           >
             {isRunning ? '실행 중' : '실행'}
           </button>
         </div>
+        {mode === 'manual' && manualSteps.some((s) => !s.subTask.trim()) && (
+          <p className="mx-auto mt-1.5 max-w-2xl text-xs text-amber-500">
+            모든 에이전트의 작업 내용을 입력해야 실행할 수 있습니다.
+          </p>
+        )}
       </div>
     </div>
   )

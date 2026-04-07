@@ -4,6 +4,25 @@ export type AgentStatus = 'WORKING' | 'THINKING' | 'IDLE' | 'MEETING' | 'BREAK' 
 
 export type AIModel = 'gpt-4o' | 'gpt-4o-mini'
 
+export type AgentGender = 'male' | 'female' | 'unspecified'
+export type ExperienceLevel = 'junior' | 'mid' | 'senior' | 'lead'
+export type WorkBackground = 'startup' | 'enterprise' | 'freelance' | 'consulting'
+export type ToneStyle = 'formal' | 'casual' | 'direct' | 'gentle'
+export type DecisionStyle = 'quick' | 'careful' | 'data-driven' | 'intuitive'
+export type FeedbackStyle = 'direct' | 'socratic' | 'encouraging'
+
+export interface PersonaDetail {
+  gender: AgentGender
+  experienceLevel: ExperienceLevel
+  background: WorkBackground
+  tone: ToneStyle
+  decisionStyle: DecisionStyle
+  feedbackStyle: FeedbackStyle
+  expertise: string
+  strengths: string
+  notes: string
+}
+
 export type ExecutionMode = 'AUTO' | 'PIPELINE' | 'CHAT'
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE'
@@ -24,6 +43,7 @@ export interface Agent {
   role: AgentRole
   name: string
   persona: string
+  personaDetail?: PersonaDetail
   avatar?: string
   model: AIModel
   status: AgentStatus

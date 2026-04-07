@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type * as PixiNS from 'pixi.js'
-import type { OfficeAgentViewModel, NearbyAgent, OfficeZoneId } from '@/types/office'
+import type {
+  OfficeAgentViewModel,
+  NearbyAgent,
+  OfficeMeetingSession,
+  OfficeVisualState,
+  OfficeZoneId,
+  TilePos,
+} from '@/types/office'
 import {
   TILE_SIZE,
   MAP_COLS,
@@ -26,9 +33,10 @@ import {
   TILE_TEXTURE_SCALE,
 } from '../constants'
 import { OFFICE_LABELS, OFFICE_PROPS } from '../manifest'
+import { bfsPath } from '../pathfinding/bfs'
 import { resolvePropPlacement } from '../placement'
 import { OFFICE_THEME } from '../theme'
-import { OFFICE_MAP, getTileType } from '../tilemap'
+import { OFFICE_MAP, getTileType, isTileWalkable } from '../tilemap'
 
 type PIXI = typeof PixiNS
 type Direction = 'down' | 'up' | 'left' | 'right'
@@ -39,18 +47,27 @@ const CHAR_FRAMES_PER_ROW = 7
 const CHARACTER_SCALE = 3
 const TILE_SCALE = TILE_TEXTURE_SCALE
 const CAMERA_LERP = 0.12
+const AGENT_MEETING_SPEED = 1.35
+const AGENT_ARRIVAL_THRESHOLD = 5
 
 interface UsePixiOfficeOptions {
   containerRef: React.RefObject<HTMLDivElement>
   agents: OfficeAgentViewModel[]
+  meetingSession: OfficeMeetingSession | null
   selectedAgentId: string | null
   onAgentSelect: (agent: OfficeAgentViewModel) => void
+  onMeetingParticipantsArrived: (sessionId: string) => void
   isMobile: boolean
 }
 
 interface UsePixiOfficeReturn {
   nearbyAgent: NearbyAgent | null
   activeZone: OfficeZoneId
+}
+
+interface Waypoint {
+  x: number
+  y: number
 }
 
 interface CharacterNode {
@@ -67,6 +84,9 @@ interface CharacterNode {
   worldX: number
   worldY: number
   preferredDirection: Direction
+  meetingPath: Waypoint[]
+  meetingSessionId: string | null
+  meetingArrived: boolean
 }
 
 const DESK_COLLISION_OFFSET_X = 10
@@ -76,6 +96,13 @@ const DESK_COLLISION_HEIGHT = TILE_SIZE + 14
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
+}
+
+function toFloorTile(worldX: number, worldY: number): TilePos {
+  return {
+    col: Math.floor(worldX / TILE_SIZE),
+    row: Math.floor(worldY / TILE_SIZE),
+  }
 }
 
 function intersectsDeskCollision(nx: number, ny: number, half: number) {
@@ -125,6 +152,94 @@ function resolveZone(worldX: number, worldY: number): OfficeZoneId {
   if (tileType === T_MEETING) return 'meeting'
   if (tileType === T_BREAK) return 'lounge'
   return 'workbay'
+}
+
+function tileWaypoint(col: number, row: number): Waypoint {
+  return {
+    x: col * TILE_SIZE + TILE_SIZE / 2,
+    y: row * TILE_SIZE + TILE_SIZE - 8,
+  }
+}
+
+function findNearestWalkableTile(worldX: number, worldY: number): TilePos | null {
+  const origin = toFloorTile(worldX, worldY)
+
+  for (let radius = 0; radius <= 3; radius++) {
+    for (let row = origin.row - radius; row <= origin.row + radius; row++) {
+      for (let col = origin.col - radius; col <= origin.col + radius; col++) {
+        if (isTileWalkable(col, row)) {
+          return { col, row }
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+function buildMeetingPath(fromWorldX: number, fromWorldY: number, destination: TilePos): Waypoint[] {
+  const startTile = findNearestWalkableTile(fromWorldX, fromWorldY)
+  const destinationWaypoint = tileWaypoint(destination.col, destination.row)
+
+  if (!startTile) {
+    return [destinationWaypoint]
+  }
+
+  const startWaypoint = tileWaypoint(startTile.col, startTile.row)
+  const travelPath = bfsPath(startTile, destination, isTileWalkable).map((tile) =>
+    tileWaypoint(tile.col, tile.row)
+  )
+
+  const firstTravelWaypoint = travelPath[0]
+  const deduplicatedTravelPath =
+    firstTravelWaypoint?.x === startWaypoint.x && firstTravelWaypoint?.y === startWaypoint.y
+      ? travelPath.slice(1)
+      : travelPath
+
+  return [startWaypoint, ...deduplicatedTravelPath]
+}
+
+function tickNodeMovement(node: CharacterNode, deltaMs: number): boolean {
+  const target = node.meetingPath[0]
+  if (!target) return false
+
+  const dx = target.x - node.worldX
+  const dy = target.y - node.worldY
+  const distance = Math.sqrt(dx * dx + dy * dy)
+
+  if (distance <= AGENT_ARRIVAL_THRESHOLD) {
+    node.worldX = target.x
+    node.worldY = target.y
+    node.meetingPath = node.meetingPath.slice(1)
+    return node.meetingPath.length > 0
+  }
+
+  const step = Math.min(AGENT_MEETING_SPEED * (deltaMs / 16.67), distance)
+  node.worldX += (dx / distance) * step
+  node.worldY += (dy / distance) * step
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    node.direction = dx > 0 ? 'right' : 'left'
+  } else {
+    node.direction = dy > 0 ? 'down' : 'up'
+  }
+
+  return true
+}
+
+function resetNodeToDesk(node: CharacterNode) {
+  if (!node.agent) return
+  const deskPosition = getAgentWorldPosition(node.agent.deskIndex)
+  node.worldX = deskPosition.x
+  node.worldY = deskPosition.y
+  node.meetingPath = []
+  node.meetingSessionId = null
+  node.meetingArrived = false
+  node.direction = node.preferredDirection
+}
+
+function resolveMeetingDirection(row: number): Direction {
+  return row >= 15 ? 'up' : 'down'
 }
 
 function createNameplate(PIXI: PIXI, text: string) {
@@ -397,17 +512,25 @@ function animateCharacter(node: CharacterNode, totalMs: number, isMoving: boolea
 export function usePixiOffice({
   containerRef,
   agents,
+  meetingSession,
   selectedAgentId,
   onAgentSelect,
+  onMeetingParticipantsArrived,
   isMobile,
 }: UsePixiOfficeOptions): UsePixiOfficeReturn {
   const [nearbyAgent, setNearbyAgent] = useState<NearbyAgent | null>(null)
   const [activeZone, setActiveZone] = useState<OfficeZoneId>('workbay')
 
+  const meetingSessionRef = useRef<OfficeMeetingSession | null>(meetingSession)
   const selectedAgentIdRef = useRef<string | null>(selectedAgentId)
   const onAgentSelectRef = useRef(onAgentSelect)
+  const onMeetingParticipantsArrivedRef = useRef(onMeetingParticipantsArrived)
   const nearbyAgentIdRef = useRef<string | null>(null)
   const activeZoneRef = useRef<OfficeZoneId>('workbay')
+
+  useEffect(() => {
+    meetingSessionRef.current = meetingSession
+  }, [meetingSession])
 
   useEffect(() => {
     selectedAgentIdRef.current = selectedAgentId
@@ -416,6 +539,10 @@ export function usePixiOffice({
   useEffect(() => {
     onAgentSelectRef.current = onAgentSelect
   }, [onAgentSelect])
+
+  useEffect(() => {
+    onMeetingParticipantsArrivedRef.current = onMeetingParticipantsArrived
+  }, [onMeetingParticipantsArrived])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -697,6 +824,9 @@ export function usePixiOffice({
         worldX: playerX,
         worldY: playerY,
         preferredDirection: 'down',
+        meetingPath: [],
+        meetingSessionId: null,
+        meetingArrived: false,
       }
       updateCamera(playerX, playerY, true)
 
@@ -760,6 +890,9 @@ export function usePixiOffice({
           worldX: x,
           worldY: y,
           preferredDirection,
+          meetingPath: [],
+          meetingSessionId: null,
+          meetingArrived: false,
         }
       })
 
@@ -821,10 +954,13 @@ export function usePixiOffice({
       }
 
       const pixiApp = app
+      let lastArrivedSessionId: string | null = null
 
       pixiApp.ticker.add(() => {
         const totalMs = pixiApp.ticker.lastTime
         const deltaMs = pixiApp.ticker.deltaMS
+        const activeMeetingSession = meetingSessionRef.current
+        const activeParticipantIds = new Set(activeMeetingSession?.participantIds ?? [])
 
         const up = keys.has('KeyW') || keys.has('ArrowUp')
         const down = keys.has('KeyS') || keys.has('ArrowDown')
@@ -864,15 +1000,63 @@ export function usePixiOffice({
         for (const node of agentNodes) {
           const { agent } = node
           if (!agent) continue
-          const bob = agent.visualState === 'typing' ? 0 : Math.sin(totalMs * 0.002 + node.worldX * 0.01) * 2
+          const isMeetingParticipant = activeParticipantIds.has(agent.id)
+          const meetingSeat = isMeetingParticipant
+            ? activeMeetingSession?.seatAssignments[agent.id]
+            : undefined
+
+          if (activeMeetingSession && isMeetingParticipant && meetingSeat && node.meetingSessionId !== activeMeetingSession.id) {
+            node.meetingPath = buildMeetingPath(node.worldX, node.worldY, meetingSeat)
+            node.meetingSessionId = activeMeetingSession.id
+            node.meetingArrived = false
+          } else if (!isMeetingParticipant && node.meetingSessionId) {
+            resetNodeToDesk(node)
+          }
+
+          const isNodeMoving = tickNodeMovement(node, deltaMs)
+          if (isMeetingParticipant && meetingSeat && !isNodeMoving && node.meetingPath.length === 0) {
+            node.meetingArrived = true
+            node.direction = resolveMeetingDirection(meetingSeat.row)
+          }
+
+          node.container.x = node.worldX
+          node.container.y = node.worldY
+
+          const displayVisualState: OfficeVisualState = isMeetingParticipant
+            ? 'meeting'
+            : agent.visualState
+          const bob =
+            displayVisualState === 'typing' || isNodeMoving
+              ? 0
+              : Math.sin(totalMs * 0.002 + node.worldX * 0.01) * 2
           node.sprite.y = bob
           node.label.alpha = selectedAgentIdRef.current === agent.id ? 1 : 0.72
-          node.bubble.visible = selectedAgentIdRef.current === agent.id || agent.visualState !== 'idle'
-          node.bubbleText.text = OFFICE_THEME.status[agent.visualState].icon.toUpperCase()
+          node.bubble.visible = selectedAgentIdRef.current === agent.id || displayVisualState !== 'idle'
+          node.bubbleText.text = OFFICE_THEME.status[displayVisualState].icon.toUpperCase()
 
-          const visualDirection = node.preferredDirection
-          const movingFrames = agent.visualState === 'typing' || agent.visualState === 'meeting'
+          const visualDirection = isNodeMoving ? node.direction : isMeetingParticipant ? node.direction : node.preferredDirection
+          const movingFrames = isNodeMoving || displayVisualState === 'typing'
           animateCharacter(node, totalMs + node.worldX, movingFrames, visualDirection)
+        }
+
+        if (
+          activeMeetingSession &&
+          activeParticipantIds.size > 0 &&
+          Array.from(activeParticipantIds).every((participantId) =>
+            agentNodes.some(
+              (node) =>
+                node.agent?.id === participantId &&
+                node.meetingSessionId === activeMeetingSession.id &&
+                node.meetingArrived
+            )
+          )
+        ) {
+          if (lastArrivedSessionId !== activeMeetingSession.id) {
+            lastArrivedSessionId = activeMeetingSession.id
+            onMeetingParticipantsArrivedRef.current(activeMeetingSession.id)
+          }
+        } else if (!activeMeetingSession) {
+          lastArrivedSessionId = null
         }
 
         const zone = resolveZone(playerX, playerY)

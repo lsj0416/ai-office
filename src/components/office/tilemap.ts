@@ -20,9 +20,9 @@ export const OFFICE_MAP: number[][] = [
   [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W], // row 8
   [W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W], // row 9
   [W, W, W, W, W, W, W, W, W, W, W, W, F, F, F, F, W, W, W, W, W, W, W, W, W, W, W, W], // row 10
-  [W, M, M, M, M, M, M, M, M, M, M, W, F, F, F, F, W, B, B, B, B, B, B, B, B, B, B, W], // row 11
-  [W, M, M, M, M, M, M, M, M, M, M, W, F, F, F, F, W, B, B, B, B, B, B, B, B, B, B, W], // row 12
-  [W, M, M, M, M, M, M, M, M, M, M, W, F, F, F, F, W, B, B, B, B, B, B, B, B, B, B, W], // row 13
+  [W, W, W, W, W, W, W, W, W, W, W, W, F, F, F, F, W, W, W, W, W, W, W, W, W, W, W, W], // row 11
+  [W, M, M, M, M, M, M, M, M, M, M, M, F, F, F, F, B, B, B, B, B, B, B, B, B, B, B, W], // row 12
+  [W, M, M, M, M, M, M, M, M, M, M, M, F, F, F, F, B, B, B, B, B, B, B, B, B, B, B, W], // row 13
   [W, M, M, M, M, M, M, M, M, M, M, W, F, F, F, F, W, B, B, B, B, B, B, B, B, B, B, W], // row 14
   [W, M, M, M, M, M, M, M, M, M, M, W, F, F, F, F, W, B, B, B, B, B, B, B, B, B, B, W], // row 15
   [W, M, M, M, M, M, M, M, M, M, M, W, F, F, F, F, W, B, B, B, B, B, B, B, B, B, B, W], // row 16

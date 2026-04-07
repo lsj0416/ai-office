@@ -54,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { data: agent, error: agentError } = await supabase
       .from('agents')
-      .select('id, name, persona, role, model')
+      .select('id, name, persona, persona_detail, role, model')
       .eq('id', parsed.data.agentId)
       .single()
 
@@ -62,12 +62,7 @@ export async function POST(request: Request): Promise<Response> {
       return errorResponse('에이전트를 찾을 수 없습니다', 404)
     }
 
-    if (
-      agent.name !== parsed.data.agentName ||
-      agent.persona !== parsed.data.persona ||
-      agent.role !== parsed.data.role ||
-      agent.model !== parsed.data.model
-    ) {
+    if (agent.name !== parsed.data.agentName || agent.role !== parsed.data.role) {
       return errorResponse('에이전트 정보가 올바르지 않습니다', 400)
     }
 
@@ -94,10 +89,11 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const stream = await runWorkerStream({
-      role: parsed.data.role,
-      agentName: parsed.data.agentName,
-      persona: parsed.data.persona,
-      model: parsed.data.model,
+      role: agent.role,
+      agentName: agent.name,
+      persona: agent.persona,
+      personaDetail: agent.persona_detail ?? undefined,
+      model: agent.model,
       messages: parsed.data.messages,
       workspaceContext,
     })

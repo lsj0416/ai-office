@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentRole, AIModel, AgentStatus } from '@/types'
-import type { OfficeAgentViewModel } from '@/types/office'
+import type { OfficeMeetingResult, OfficeMeetingSession, OfficeMeetingStep, OfficeAgentViewModel } from '@/types/office'
 import { ZONE_COPY } from './manifest'
 import { toOfficeAgentViewModel } from './model'
 import { usePixiOffice } from './hooks/usePixiOffice'
 import ChatDialog from './ChatDialog'
+import MeetingCallPanel from './MeetingCallPanel'
+import { buildMeetingSeatAssignments } from './meeting'
 
 interface OfficeCanvasProps {
   workspaceId: string
@@ -21,13 +23,49 @@ interface AgentRow {
   model: AIModel
 }
 
+interface OrchestratePlanEvent {
+  type: 'plan'
+  analysis: string
+  steps: OfficeMeetingStep[]
+}
+
+interface OrchestrateChunkEvent {
+  type: 'chunk'
+  agentId: string
+  content: string
+}
+
+interface OrchestrateAgentDoneEvent {
+  type: 'agent_done'
+  agentId: string
+}
+
+interface OrchestrateDoneEvent {
+  type: 'done'
+}
+
+interface OrchestrateErrorEvent {
+  type: 'error'
+  message: string
+}
+
+type OrchestrateEvent =
+  | OrchestratePlanEvent
+  | OrchestrateChunkEvent
+  | OrchestrateAgentDoneEvent
+  | OrchestrateDoneEvent
+  | OrchestrateErrorEvent
+
 export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const meetingSessionRef = useRef<OfficeMeetingSession | null>(null)
 
   const [agents, setAgents] = useState<OfficeAgentViewModel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isMeetingPanelOpen, setIsMeetingPanelOpen] = useState(false)
+  const [meetingSession, setMeetingSession] = useState<OfficeMeetingSession | null>(null)
 
   useEffect(() => {
     function syncViewport() {
@@ -70,6 +108,10 @@ export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
     }
   }, [agents, selectedAgentId])
 
+  useEffect(() => {
+    meetingSessionRef.current = meetingSession
+  }, [meetingSession])
+
   const selectedAgent = useMemo(
     () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
     [agents, selectedAgentId]
@@ -80,8 +122,175 @@ export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
     agents,
     selectedAgentId,
     onAgentSelect: (agent) => setSelectedAgentId(agent.id),
+    meetingSession,
+    onMeetingParticipantsArrived: (sessionId) => {
+      void runMeetingOrchestration(sessionId)
+    },
     isMobile,
   })
+
+  async function runMeetingOrchestration(sessionId: string) {
+    const session = meetingSessionRef.current
+    if (!session || session.id !== sessionId || session.status !== 'gathering') return
+
+    setMeetingSession((prev) =>
+      prev && prev.id === sessionId
+        ? {
+            ...prev,
+            status: 'running',
+            analysis: '',
+            results: [],
+            error: '',
+          }
+        : prev
+    )
+
+    try {
+      const res = await fetch('/api/orchestrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId,
+          message: session.agenda,
+          participantIds: session.participantIds,
+        }),
+      })
+
+      if (!res.ok || !res.body) {
+        const json = (await res.json().catch(() => ({ error: '회의 실행 실패' }))) as {
+          error?: string
+        }
+        setMeetingSession((prev) =>
+          prev && prev.id === sessionId
+            ? {
+                ...prev,
+                status: 'error',
+                error: json.error ?? '회의 실행 실패',
+              }
+            : prev
+        )
+        return
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          handleMeetingEvent(sessionId, JSON.parse(line.slice(6)) as OrchestrateEvent)
+        }
+      }
+    } catch {
+      setMeetingSession((prev) =>
+        prev && prev.id === sessionId
+          ? {
+              ...prev,
+              status: 'error',
+              error: '회의 실행 중 네트워크 오류가 발생했습니다.',
+            }
+          : prev
+      )
+    }
+  }
+
+  function handleMeetingEvent(sessionId: string, event: OrchestrateEvent) {
+    setMeetingSession((prev) => {
+      if (!prev || prev.id !== sessionId) return prev
+
+      if (event.type === 'plan') {
+        const results: OfficeMeetingResult[] = event.steps.map((step) => ({
+          ...step,
+          content: '',
+          done: false,
+        }))
+        return {
+          ...prev,
+          analysis: event.analysis,
+          results,
+          error: '',
+        }
+      }
+
+      if (event.type === 'chunk') {
+        return {
+          ...prev,
+          results: prev.results.map((result) =>
+            result.agentId === event.agentId
+              ? { ...result, content: result.content + event.content }
+              : result
+          ),
+        }
+      }
+
+      if (event.type === 'agent_done') {
+        return {
+          ...prev,
+          results: prev.results.map((result) =>
+            result.agentId === event.agentId ? { ...result, done: true } : result
+          ),
+        }
+      }
+
+      if (event.type === 'done') {
+        return {
+          ...prev,
+          status: 'done',
+        }
+      }
+
+      return {
+        ...prev,
+        status: 'error',
+        error: event.message,
+      }
+    })
+  }
+
+  function handleStartMeeting(input: { agenda: string; participantIds: string[] }) {
+    try {
+      const nextSession: OfficeMeetingSession = {
+        id: crypto.randomUUID(),
+        agenda: input.agenda,
+        participantIds: input.participantIds,
+        seatAssignments: buildMeetingSeatAssignments(input.participantIds),
+        status: 'gathering',
+        analysis: '',
+        results: [],
+        error: '',
+      }
+
+      setMeetingSession(nextSession)
+      setIsMeetingPanelOpen(true)
+      setSelectedAgentId(null)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '회의 참가자 정보를 처리하지 못했습니다.'
+      setMeetingSession({
+        id: crypto.randomUUID(),
+        agenda: input.agenda,
+        participantIds: input.participantIds,
+        seatAssignments: {},
+        status: 'error',
+        analysis: '',
+        results: [],
+        error: message,
+      })
+      setIsMeetingPanelOpen(true)
+    }
+  }
+
+  function handleEndMeeting() {
+    setMeetingSession(null)
+  }
 
   useEffect(() => {
     if (isMobile) return
@@ -89,12 +298,17 @@ export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
     function handleKey(event: KeyboardEvent) {
       if (event.code === 'KeyE' && nearbyAgent) {
         setSelectedAgentId(nearbyAgent.agent.id)
+        return
+      }
+
+      if (event.code === 'KeyR' && activeZone === 'meeting') {
+        setIsMeetingPanelOpen(true)
       }
     }
 
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [isMobile, nearbyAgent])
+  }, [activeZone, isMobile, nearbyAgent])
 
   if (isLoading) {
     return (
@@ -105,6 +319,11 @@ export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
   }
 
   const zoneInfo = ZONE_COPY[activeZone]
+  const meetingParticipantLabel =
+    meetingSession?.participantIds
+      .map((participantId) => agents.find((agent) => agent.id === participantId)?.name)
+      .filter((name): name is string => Boolean(name))
+      .join(', ') ?? ''
 
   return (
     <div className="flex h-full flex-col">
@@ -120,6 +339,15 @@ export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
             <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
               {selectedAgent?.name ?? nearbyAgent?.agent.name ?? '선택된 직원 없음'}
             </span>
+            {(activeZone === 'meeting' || meetingSession) && (
+              <button
+                type="button"
+                onClick={() => setIsMeetingPanelOpen(true)}
+                className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5 text-[var(--workspace-text)]"
+              >
+                {meetingSession ? '회의 패널 열기' : '회의 소집'}
+              </button>
+            )}
           </div>
 
           <div className="scanlines relative flex-1 overflow-hidden rounded-[28px] border border-[var(--workspace-line)] bg-[#f4f1ea]">
@@ -137,6 +365,16 @@ export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
                 모바일에서는 캐릭터를 탭해 채널을 열 수 있습니다.
               </div>
             )}
+
+            <MeetingCallPanel
+              agents={agents}
+              initialSelectedAgentId={selectedAgentId}
+              isOpen={isMeetingPanelOpen}
+              session={meetingSession}
+              onClose={() => setIsMeetingPanelOpen(false)}
+              onEndMeeting={handleEndMeeting}
+              onStartMeeting={handleStartMeeting}
+            />
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--workspace-muted)]">
@@ -154,8 +392,16 @@ export default function OfficeCanvas({ workspaceId }: OfficeCanvasProps) {
               닫기: ESC
             </span>
             <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+              회의 소집: R
+            </span>
+            <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
               {zoneInfo.description}
             </span>
+            {meetingSession && (
+              <span className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5">
+                회의 중 {meetingParticipantLabel || '참가자 정보 없음'}
+              </span>
+            )}
           </div>
         </div>
 

@@ -46,28 +46,52 @@ STT/TTS   Whisper + ElevenLabs
 ```
 src/
 ├── app/
-│   ├── (auth)/          # 로그인, 회원가입
-│   ├── workspace/       # 회사 생성 및 메인 오피스
-│   │   ├── [id]/
-│   │   │   ├── office/  # 오피스 공간 UI
-│   │   │   ├── chat/    # 에이전트 채팅
-│   │   │   └── tasks/   # 태스크 관리
+│   ├── (auth)/                    # 로그인, 회원가입
+│   ├── workspace/
+│   │   ├── page.tsx               # 워크스페이스 목록
+│   │   ├── new/                   # 워크스페이스 생성
+│   │   └── [id]/
+│   │       ├── office/            # Pixi.js 2D 오피스 공간
+│   │       ├── chat/              # 에이전트 채팅
+│   │       ├── agents/            # 에이전트 CRUD
+│   │       ├── tasks/             # 태스크 관리
+│   │       └── auto/              # AUTO 모드 (Orchestrator)
 │   └── api/
-│       ├── agent/       # 에이전트 실행 API
-│       ├── memory/      # RAG 저장 / 검색
-│       └── meeting/     # 회의 처리
+│       ├── agent/                 # 에이전트 스트리밍 실행
+│       ├── orchestrate/           # Orchestrator → Worker 파이프라인
+│       ├── memory/                # RAG 저장 / 검색 (Phase 3)
+│       ├── meeting/               # 음성 회의 (Phase 3)
+│       └── workspaces/[id]/
+│           ├── agents/            # 에이전트 CRUD API
+│           ├── threads/           # 스레드 생성/조회
+│           └── tasks/             # 태스크 CRUD API
 ├── components/
-│   ├── office/          # 오피스 UI 컴포넌트
-│   ├── agent/           # 에이전트 카드, 채팅
-│   └── ui/              # 공통 UI
+│   └── office/                    # Pixi.js 오피스 컴포넌트
+│       ├── OfficeCanvas.tsx       # 메인 React 래퍼
+│       ├── ChatDialog.tsx         # 근접 대화 오버레이
+│       ├── constants.ts           # 타일/캐릭터/색상 상수
+│       ├── tilemap.ts             # 20×15 맵 데이터 + 이동 가능 판정
+│       ├── hooks/
+│       │   └── usePixiOffice.ts   # Pixi 게임 루프 훅
+│       └── sprites/
+│           ├── CharacterSprite.ts # SD 캐릭터 팩토리 (교체 가능 구조)
+│           └── DeskSprite.ts      # 3D 책상 팩토리
 ├── lib/
-│   ├── ai/              # AI 관련 유틸
-│   │   ├── orchestrator.ts
-│   │   ├── worker.ts
-│   │   └── rag.ts
-│   ├── supabase/        # DB 클라이언트
+│   ├── ai/
+│   │   ├── orchestrator.ts        # Orchestrator 에이전트
+│   │   ├── worker.ts              # Worker 에이전트 (스트리밍)
+│   │   └── rag.ts                 # RAG 파이프라인 (Phase 3)
+│   ├── supabase/                  # DB 클라이언트 (client/server/middleware)
 │   └── utils/
-└── types/               # 공통 타입 정의
+│       └── schemas.ts             # Zod 스키마
+├── stores/                        # Zustand 상태
+│   ├── workspace-store.ts
+│   ├── agent-store.ts
+│   └── chat-store.ts
+└── types/
+    ├── index.ts                   # 공통 도메인 타입
+    ├── database.ts                # Supabase 스키마 타입
+    └── office.ts                  # 오피스 전용 타입
 ```
 
 ---
@@ -131,24 +155,42 @@ src/
 
 ## 현재 개발 상태
 
-### 완료
+### Phase 1 — 완료
 - [x] 서비스 기획 및 아이디어 구체화
 - [x] 기술 스택 확정
-- [x] HTML 프로토타입 (정적 UI)
+- [x] Next.js 14 프로젝트 세팅 (App Router, TypeScript, Tailwind, Zustand)
+- [x] Supabase 스키마 설계 (Workspace / Agent / Thread / Message / Task / Memory)
+- [x] Supabase Auth (로그인 / 회원가입 / 로그아웃)
+- [x] 워크스페이스 CRUD
+- [x] 에이전트 CRUD (역할 / 페르소나 / 모델 설정)
+- [x] 에이전트 채팅 (Thread + 스트리밍 응답)
+- [x] 태스크 관리 (생성 / 상태 변경 / 삭제)
+- [x] AUTO 모드 (Orchestrator → Worker 파이프라인, 스트리밍)
+- [x] OpenAI API 연동 (GPT-4o Orchestrator + GPT-4o-mini Worker)
 
-### 진행 중 (Phase 1)
-- [ ] Next.js 프로젝트 초기 세팅
-- [ ] Supabase 스키마 설계
-- [ ] Claude API 실제 연동
-- [ ] 에이전트 채팅 기능
+### Phase 2 — 진행 중
+- [x] Pixi.js 7 설치 및 기본 캔버스 세팅
+- [x] 20×15 타일맵 오피스 맵 (작업공간 / 회의실 / 탕비실)
+- [x] 세종씨 캐릭터 WASD 이동 + 충돌 처리
+- [x] SD 캐릭터 스프라이트 (머리+몸통+다리, Zep 스타일, Graphics 기반)
+- [x] 3D 책상 (위면+앞면+모니터+키보드)
+- [x] Y-sort 깊이감 (sortableChildren, zIndex=feet.y)
+- [x] 아이들 보빙 / 걷기 다리 스윙 애니메이션
+- [x] 에이전트 근접 감지 → E키 대화 트리거 → ChatDialog 오버레이
+- [x] 스프라이트 교체 가능 구조 (CharacterSprite 인터페이스)
+- [ ] 직원 행동 패턴 FSM (출퇴근 / 회의실 이동 / 탕비실 이동)
 
-### 예정 (Phase 2)
-- [ ] Pixi.js 2D 오피스 공간
-- [ ] 캐릭터 이동 및 직원 행동 패턴
-
-### 예정 (Phase 3)
-- [ ] RAG 파이프라인
-- [ ] 음성 회의 (STT/TTS)
+### Phase 3 — 진행 중
+- [x] RAG 파이프라인 (OpenAI Embeddings + Supabase pgvector)
+  - embedText / saveMemory / searchMemories / buildRagContext (src/lib/ai/rag.ts)
+  - Memory REST API: GET 검색 / POST 저장 (src/app/api/memory/route.ts)
+  - Agent API & Orchestrate API에 RAG 컨텍스트 자동 주입
+- [x] 음성 회의 STT (Whisper whisper-1): POST /api/meeting — multipart audio → text
+- [x] 음성 회의 TTS (ElevenLabs eleven_multilingual_v2): POST /api/meeting/tts — text → audio/mpeg
+- [x] 대화 완료 후 자동 메모리 저장 (ChatDialog 스트리밍 완료 시 /api/memory 저장)
+- [x] 음성 회의 UI 컴포넌트 (마이크 녹음 → STT → 에이전트 응답 스트리밍 → TTS 재생)
+  - VoiceMeetingPanel (src/components/meeting/VoiceMeetingPanel.tsx)
+  - /workspace/[id]/meeting 페이지 + 네비게이션 '회의' 탭
 
 ---
 

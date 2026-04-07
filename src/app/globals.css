@@ -2,22 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@font-face {
+  font-family: 'FS Pixel Sans';
+  src: url('/assets/pixel-agents/FSPixelSansUnicode-Regular.ttf') format('truetype');
+  font-display: swap;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #f5f7fb;
+  --foreground: #111827;
+  --workspace-bg: #f5f7fb;
+  --workspace-surface: rgba(255, 255, 255, 0.92);
+  --workspace-line: #dbe3f0;
+  --workspace-text: #111827;
+  --workspace-muted: #6b7280;
+  --workspace-accent: #d5e3ff;
+  --workspace-accent-soft: #e8f0ff;
+  --workspace-accent-strong: #2356b8;
+  --office-bg: #070b13;
+  --office-panel: rgba(15, 23, 42, 0.88);
+  --office-panel-alt: rgba(23, 31, 48, 0.9);
+  --office-line: rgba(72, 96, 134, 0.45);
+  --office-line-strong: rgba(122, 162, 247, 0.55);
+  --office-accent: #78a5ff;
+  --office-text: #edf4ff;
+  --office-muted: #9caecb;
+  --office-shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-noto-sans-kr), sans-serif;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.pixel-font {
+  font-family: 'FS Pixel Sans', var(--font-noto-sans-kr), sans-serif;
+}
+
+.pixel-panel {
+  border: 1px solid var(--office-line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    var(--office-panel);
+  box-shadow: var(--office-shadow);
+  backdrop-filter: blur(18px);
+  border-radius: 24px;
+}
+
+.pixel-button {
+  border: 1px solid var(--office-line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--office-text);
+  transition: 180ms ease;
+}
+
+.pixel-button:hover:not(:disabled) {
+  border-color: var(--office-line-strong);
+  background: rgba(120, 165, 255, 0.14);
+}
+
+.workspace-panel {
+  border: 1px solid var(--workspace-line);
+  border-radius: 24px;
+  background: var(--workspace-surface);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+}
+
+.workspace-button {
+  border: 1px solid var(--workspace-line);
+  background: #ffffff;
+  color: var(--workspace-text);
+  transition: 180ms ease;
+}
+
+.workspace-button:hover:not(:disabled) {
+  border-color: #b9c9e6;
+  background: #f8fbff;
+}
+
+.pixel-canvas canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  background-size: 100% 4px;
+  opacity: 0.18;
 }
 
 @layer utilities {

@@ -6,6 +6,8 @@ import { buildRagContext } from '@/lib/ai/rag'
 import { buildCompanyContext, rowToWorkspace } from '@/lib/ai/context'
 import { errorResponse } from '@/types/api'
 
+export const maxDuration = 60
+
 const manualStepSchema = z.object({
   agentId: z.string(),
   subTask: z.string().min(1).max(500),
@@ -228,7 +230,11 @@ export async function POST(request: Request): Promise<Response> {
             generation,
             source: 'ai_followup' as const,
           }))
-          try { await supabase.from('tasks').insert(taskRows) } catch { /* non-critical */ }
+          try {
+            await supabase.from('tasks').insert(taskRows)
+          } catch {
+            /* non-critical */
+          }
         }
 
         // 5. 후속 태스크 평가 (generation < 3일 때만)

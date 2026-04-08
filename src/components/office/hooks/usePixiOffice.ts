@@ -1000,12 +1000,18 @@ export function usePixiOffice({
         for (const node of agentNodes) {
           const { agent } = node
           if (!agent) continue
+
           const isMeetingParticipant = activeParticipantIds.has(agent.id)
           const meetingSeat = isMeetingParticipant
             ? activeMeetingSession?.seatAssignments[agent.id]
             : undefined
 
-          if (activeMeetingSession && isMeetingParticipant && meetingSeat && node.meetingSessionId !== activeMeetingSession.id) {
+          if (
+            activeMeetingSession &&
+            isMeetingParticipant &&
+            meetingSeat &&
+            node.meetingSessionId !== activeMeetingSession.id
+          ) {
             node.meetingPath = buildMeetingPath(node.worldX, node.worldY, meetingSeat)
             node.meetingSessionId = activeMeetingSession.id
             node.meetingArrived = false

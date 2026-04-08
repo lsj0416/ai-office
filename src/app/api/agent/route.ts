@@ -5,6 +5,8 @@ import { buildCompanyContext, rowToWorkspace } from '@/lib/ai/context'
 import { createClient } from '@/lib/supabase/server'
 import { errorResponse } from '@/types/api'
 
+export const maxDuration = 60
+
 const requestSchema = z.object({
   agentId: z.string(),
   agentName: z.string(),
@@ -15,6 +17,7 @@ const requestSchema = z.object({
     'FRONTEND',
     'DEVOPS',
     'AI_DATA',
+    'SECURITY',
     'MARKETER',
     'DESIGNER',
     'REVIEWER',

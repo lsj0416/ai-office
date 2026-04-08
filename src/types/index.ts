@@ -4,6 +4,7 @@ export type AgentRole =
   | 'FRONTEND'
   | 'DEVOPS'
   | 'AI_DATA'
+  | 'SECURITY'
   | 'MARKETER'
   | 'DESIGNER'
   | 'REVIEWER'

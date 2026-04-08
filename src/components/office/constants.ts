@@ -41,6 +41,7 @@ export const COLORS = {
 export const AGENT_ROLE_COLORS: Record<string, number> = {
   PM: 0x4a90d9,
   DEVELOPER: 0x7ed321,
+  SECURITY: 0xef4444,
   MARKETER: 0xe040fb,
   DESIGNER: 0xff6090,
   REVIEWER: 0xff9800,
@@ -50,6 +51,7 @@ export const AGENT_ROLE_COLORS: Record<string, number> = {
 export const AGENT_ROLE_HAIR_COLORS: Record<string, number> = {
   PM: 0x1a5fa0,
   DEVELOPER: 0x3d8b00,
+  SECURITY: 0xb91c1c,
   MARKETER: 0x9b00cc,
   DESIGNER: 0xcc1060,
   REVIEWER: 0xcc6600,

@@ -54,6 +54,7 @@ const ROLE_COLORS: Record<AgentRole, string> = {
   FRONTEND: 'bg-purple-100 text-purple-700 border-purple-200',
   DEVOPS: 'bg-cyan-100 text-cyan-700 border-cyan-200',
   AI_DATA: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  SECURITY: 'bg-red-100 text-red-700 border-red-200',
   MARKETER: 'bg-orange-100 text-orange-700 border-orange-200',
   DESIGNER: 'bg-pink-100 text-pink-700 border-pink-200',
   REVIEWER: 'bg-green-100 text-green-700 border-green-200',

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { errorResponse } from '@/types/api'
 import { z } from 'zod'
 
+export const maxDuration = 60
+
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1'
 // 기본 음성 ID (Rachel)
 const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'

@@ -8,7 +8,20 @@ export const createWorkspaceSchema = z.object({
 
 export const createAgentSchema = z.object({
   workspaceId: z.string().uuid('유효하지 않은 워크스페이스 ID입니다'),
-  role: z.enum(['PM', 'DEVELOPER', 'MARKETER', 'DESIGNER', 'REVIEWER', 'CUSTOM']),
+  role: z.enum([
+    'PM',
+    'DEVELOPER',
+    'BACKEND',
+    'FRONTEND',
+    'DEVOPS',
+    'AI_DATA',
+    'SECURITY',
+    'MARKETER',
+    'DESIGNER',
+    'REVIEWER',
+    'LEGAL',
+    'CUSTOM',
+  ]),
   name: z.string().min(1, '이름을 입력해주세요').max(50, '50자 이하로 입력해주세요'),
   persona: z.string().min(1, '페르소나를 입력해주세요').max(1000, '1000자 이하로 입력해주세요'),
 })

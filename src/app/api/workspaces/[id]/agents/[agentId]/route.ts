@@ -24,6 +24,7 @@ const updateAgentSchema = z.object({
       'FRONTEND',
       'DEVOPS',
       'AI_DATA',
+      'SECURITY',
       'MARKETER',
       'DESIGNER',
       'REVIEWER',

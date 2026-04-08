@@ -21,10 +21,17 @@ interface AgentResult {
   done: boolean
 }
 
+interface FollowupTask {
+  title: string
+  description: string
+  generation: number
+}
+
 interface RunState {
   analysis: string
   steps: PlanStep[]
   results: AgentResult[]
+  followupTasks: FollowupTask[]
   isDone: boolean
   error: string
 }
@@ -43,11 +50,16 @@ type Mode = 'auto' | 'manual'
 
 const ROLE_COLORS: Record<AgentRole, string> = {
   PM: 'bg-blue-100 text-blue-700 border-blue-200',
-  DEVELOPER: 'bg-purple-100 text-purple-700 border-purple-200',
+  BACKEND: 'bg-violet-100 text-violet-700 border-violet-200',
+  FRONTEND: 'bg-purple-100 text-purple-700 border-purple-200',
+  DEVOPS: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+  AI_DATA: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   MARKETER: 'bg-orange-100 text-orange-700 border-orange-200',
   DESIGNER: 'bg-pink-100 text-pink-700 border-pink-200',
   REVIEWER: 'bg-green-100 text-green-700 border-green-200',
+  LEGAL: 'bg-amber-100 text-amber-700 border-amber-200',
   CUSTOM: 'bg-gray-100 text-gray-700 border-gray-200',
+  DEVELOPER: 'bg-purple-100 text-purple-700 border-purple-200',
 }
 
 // ─── 컴포넌트 ────────────────────────────────────────────────
@@ -60,6 +72,7 @@ export default function AutoPage({ params }: { params: { id: string } }) {
   const [input, setInput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [runState, setRunState] = useState<RunState | null>(null)
+  const [currentGeneration, setCurrentGeneration] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // 수동 모드
@@ -120,15 +133,24 @@ export default function AutoPage({ params }: { params: { id: string } }) {
     !isRunning &&
     (mode === 'auto' || (manualSteps.length > 0 && manualSteps.every((s) => s.subTask.trim())))
 
-  async function handleRun() {
-    if (!canRun) return
+  function handleFollowupClick(task: FollowupTask) {
+    if (isRunning) return
+    void handleRun(task.title + ': ' + task.description, task.generation)
+  }
 
-    setInput('')
+  async function handleRun(overrideMessage?: string, overrideGeneration?: number) {
+    const msg = overrideMessage ?? input.trim()
+    const gen = overrideGeneration ?? 0
+
+    if (!msg || isRunning) return
+
+    if (!overrideMessage) setInput('')
     setIsRunning(true)
     setRunState(null)
+    setCurrentGeneration(gen)
 
-    const body: Record<string, unknown> = { workspaceId, message: input.trim() }
-    if (mode === 'manual') {
+    const body: Record<string, unknown> = { workspaceId, message: msg, generation: gen }
+    if (mode === 'manual' && !overrideMessage) {
       body.manualSteps = manualSteps.map((s) => ({
         agentId: s.agentId,
         subTask: s.subTask.trim(),
@@ -148,13 +170,14 @@ export default function AutoPage({ params }: { params: { id: string } }) {
           analysis: '',
           steps: [],
           results: [],
+          followupTasks: [],
           isDone: true,
           error: (err as { error?: string }).error ?? '실행 실패',
         })
         return
       }
 
-      const reader = res.body.getReader()
+      const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
 
@@ -191,6 +214,7 @@ export default function AutoPage({ params }: { params: { id: string } }) {
         analysis: event.analysis as string,
         steps,
         results: steps.map((s) => ({ ...s, content: '', done: false })),
+        followupTasks: [],
         isDone: false,
         error: '',
       })
@@ -214,6 +238,9 @@ export default function AutoPage({ params }: { params: { id: string } }) {
           results: prev.results.map((r) => (r.agentId === agentId ? { ...r, done: true } : r)),
         }
       })
+    } else if (type === 'followup_tasks') {
+      const tasks = event.tasks as FollowupTask[]
+      setRunState((prev) => (prev ? { ...prev, followupTasks: tasks } : prev))
     } else if (type === 'done') {
       setRunState((prev) => (prev ? { ...prev, isDone: true } : prev))
     } else if (type === 'error') {
@@ -226,7 +253,7 @@ export default function AutoPage({ params }: { params: { id: string } }) {
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      void handleRun()
+      if (canRun) void handleRun()
     }
   }
 
@@ -478,6 +505,28 @@ export default function AutoPage({ params }: { params: { id: string } }) {
               </div>
             )}
 
+            {runState.isDone && !runState.error && runState.followupTasks.length > 0 && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                <p className="mb-2 text-xs font-semibold text-blue-500">
+                  💡 다음 작업 제안 (클릭하면 바로 실행)
+                </p>
+                <div className="flex flex-col gap-2">
+                  {runState.followupTasks.map((task, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleFollowupClick(task)}
+                      disabled={isRunning || currentGeneration >= 3}
+                      className="flex flex-col items-start gap-0.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-left hover:border-blue-400 hover:shadow-sm disabled:opacity-50"
+                    >
+                      <span className="text-sm font-medium text-gray-800">{task.title}</span>
+                      <span className="text-xs text-gray-500">{task.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {runState.isDone && !runState.error && (
               <div className="py-2 text-center text-xs text-gray-400">
                 ✓ 모든 에이전트 실행 완료
@@ -506,7 +555,9 @@ export default function AutoPage({ params }: { params: { id: string } }) {
             className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none disabled:opacity-50"
           />
           <button
-            onClick={() => void handleRun()}
+            onClick={() => {
+              if (canRun) void handleRun()
+            }}
             disabled={!canRun}
             className="self-end rounded-xl bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
           >

@@ -61,6 +61,13 @@ Codex        → 리뷰, 검증, 버그 수정 (보조)
 
 ## Codex 에이전트
 
+### gstack 적용
+- Codex에 gstack을 설치해 사용할 수 있다.
+- 권장 설치: `git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.codex/skills/gstack && cd ~/.codex/skills/gstack && ./setup --host codex`
+- gstack이 설치된 경우 일반 대화보다 역할형 skill 사용을 우선한다.
+- 권장 흐름: 기획 `/office-hours` → 설계 `/plan-eng-review` → 리뷰 `/review` → 버그 조사 `/investigate` → QA `/qa` → 문서 `/document-release`
+- 단, 이 저장소의 프로젝트 규칙과 역할 분담 원칙은 gstack 기본 규칙보다 우선한다.
+
 ### codex:review
 - 현재 uncommitted 변경사항 리뷰
 - 브랜치 비교: `--base main`

@@ -217,6 +217,15 @@ src/
 - RAG 없이 전체 히스토리를 프롬프트에 넣지 말 것 (비용 폭발)
 - 1인 개발 → 과도한 추상화 지양, 빠른 검증 우선
 
+## gstack
+
+이 프로젝트는 `gstack` 사용을 허용한다. 특히 Codex에서 다음 원칙을 따른다.
+
+- Codex 전역 설치: `git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.codex/skills/gstack && cd ~/.codex/skills/gstack && ./setup --host codex`
+- 설치 후 Codex가 gstack skill을 읽을 수 있으면 브라우저 기반 검증은 gstack의 `/browse` 또는 `/qa` 계열 skill을 우선 사용한다.
+- 기획 검토는 `/office-hours`, 아키텍처 검토는 `/plan-eng-review`, 버그 조사는 `/investigate`, 코드 리뷰는 `/review`, 문서 동기화는 `/document-release`를 우선 고려한다.
+- gstack의 일반 규칙보다 이 문서의 프로젝트 컨텍스트와 코딩 원칙을 우선한다.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill

@@ -10,6 +10,7 @@ const navItems = [
   { href: 'meeting', label: '회의' },
   { href: 'agents', label: '팀' },
   { href: 'tasks', label: '태스크' },
+  { href: 'settings', label: '설정' },
 ] as const
 
 interface WorkspaceShellProps {

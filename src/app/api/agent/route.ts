@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { runWorkerStream } from '@/lib/ai/worker'
 import { buildChatRagContext, buildRagContext } from '@/lib/ai/rag'
+import { buildCompanyContext, rowToWorkspace } from '@/lib/ai/context'
 import { createClient } from '@/lib/supabase/server'
 import { errorResponse } from '@/types/api'
 
@@ -8,7 +9,19 @@ const requestSchema = z.object({
   agentId: z.string(),
   agentName: z.string(),
   persona: z.string(),
-  role: z.enum(['PM', 'DEVELOPER', 'MARKETER', 'DESIGNER', 'REVIEWER', 'CUSTOM']),
+  role: z.enum([
+    'PM',
+    'BACKEND',
+    'FRONTEND',
+    'DEVOPS',
+    'AI_DATA',
+    'MARKETER',
+    'DESIGNER',
+    'REVIEWER',
+    'LEGAL',
+    'CUSTOM',
+    'DEVELOPER',
+  ]),
   model: z.enum(['gpt-4o', 'gpt-4o-mini']),
   messages: z
     .array(
@@ -66,9 +79,20 @@ export async function POST(request: Request): Promise<Response> {
       return errorResponse('에이전트 정보가 올바르지 않습니다', 400)
     }
 
-    // RAG 컨텍스트 생성 (workspaceId가 있을 때만)
+    // 회사 컨텍스트 + RAG 컨텍스트 생성 (workspaceId가 있을 때만)
     let workspaceContext = parsed.data.workspaceContext
     if (parsed.data.workspaceId) {
+      const { data: wsRow } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('id', parsed.data.workspaceId)
+        .single()
+
+      if (wsRow) {
+        const companyCtx = buildCompanyContext(rowToWorkspace(wsRow))
+        workspaceContext = workspaceContext ? `${companyCtx}\n\n${workspaceContext}` : companyCtx
+      }
+
       const lastUserMessage = [...parsed.data.messages]
         .reverse()
         .find((m) => m.role === 'user')?.content

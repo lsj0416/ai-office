@@ -17,7 +17,19 @@ const personaDetailSchema = z.object({
 
 const createAgentSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요').max(30),
-  role: z.enum(['PM', 'DEVELOPER', 'MARKETER', 'DESIGNER', 'REVIEWER', 'CUSTOM']),
+  role: z.enum([
+    'PM',
+    'BACKEND',
+    'FRONTEND',
+    'DEVOPS',
+    'AI_DATA',
+    'MARKETER',
+    'DESIGNER',
+    'REVIEWER',
+    'LEGAL',
+    'CUSTOM',
+    'DEVELOPER',
+  ]),
   model: z.enum(['gpt-4o', 'gpt-4o-mini']),
   personaDetail: personaDetailSchema,
 })

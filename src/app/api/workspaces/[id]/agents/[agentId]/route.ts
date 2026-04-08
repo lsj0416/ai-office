@@ -17,7 +17,21 @@ const personaDetailSchema = z.object({
 
 const updateAgentSchema = z.object({
   name: z.string().min(1).max(30).optional(),
-  role: z.enum(['PM', 'DEVELOPER', 'MARKETER', 'DESIGNER', 'REVIEWER', 'CUSTOM']).optional(),
+  role: z
+    .enum([
+      'PM',
+      'BACKEND',
+      'FRONTEND',
+      'DEVOPS',
+      'AI_DATA',
+      'MARKETER',
+      'DESIGNER',
+      'REVIEWER',
+      'LEGAL',
+      'CUSTOM',
+      'DEVELOPER',
+    ])
+    .optional(),
   model: z.enum(['gpt-4o', 'gpt-4o-mini']).optional(),
   personaDetail: personaDetailSchema.optional(),
 })

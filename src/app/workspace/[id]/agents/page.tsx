@@ -52,20 +52,44 @@ const EMPTY_FORM: AgentFormData = {
 
 const ROLE_LABELS: Record<AgentRole, string> = {
   PM: 'PM',
-  DEVELOPER: '개발자',
+  BACKEND: '백엔드',
+  FRONTEND: '프론트',
+  DEVOPS: 'DevOps',
+  AI_DATA: 'AI/데이터',
   MARKETER: '마케터',
   DESIGNER: '디자이너',
   REVIEWER: '리뷰어',
+  LEGAL: '법무',
   CUSTOM: '커스텀',
+  DEVELOPER: '개발자',
 }
 
-const ROLE_COLORS: Record<AgentRole, string> = {
+const _ROLE_COLORS: Record<AgentRole, string> = {
   PM: 'bg-blue-100 text-blue-700',
-  DEVELOPER: 'bg-purple-100 text-purple-700',
+  BACKEND: 'bg-violet-100 text-violet-700',
+  FRONTEND: 'bg-purple-100 text-purple-700',
+  DEVOPS: 'bg-cyan-100 text-cyan-700',
+  AI_DATA: 'bg-indigo-100 text-indigo-700',
   MARKETER: 'bg-orange-100 text-orange-700',
   DESIGNER: 'bg-pink-100 text-pink-700',
   REVIEWER: 'bg-green-100 text-green-700',
+  LEGAL: 'bg-amber-100 text-amber-700',
   CUSTOM: 'bg-gray-100 text-gray-700',
+  DEVELOPER: 'bg-purple-100 text-purple-700',
+}
+
+const ROLE_TEXT_COLORS: Record<AgentRole, string> = {
+  PM: 'text-blue-600',
+  BACKEND: 'text-violet-600',
+  FRONTEND: 'text-purple-600',
+  DEVOPS: 'text-cyan-600',
+  AI_DATA: 'text-indigo-600',
+  MARKETER: 'text-orange-600',
+  DESIGNER: 'text-pink-600',
+  REVIEWER: 'text-green-600',
+  LEGAL: 'text-amber-600',
+  CUSTOM: 'text-gray-500',
+  DEVELOPER: 'text-purple-600',
 }
 
 const GENDER_OPTIONS: { value: AgentGender; label: string }[] = [
@@ -243,11 +267,13 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{agent.name}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[agent.role]}`}
-                    >
-                      {ROLE_LABELS[agent.role]}
+                    <span className="font-medium text-gray-900">
+                      <span
+                        className={`mr-1 text-xs font-semibold ${ROLE_TEXT_COLORS[agent.role]}`}
+                      >
+                        [{ROLE_LABELS[agent.role]}]
+                      </span>
+                      {agent.name}
                     </span>
                     <span className="text-xs text-gray-400">{agent.model}</span>
                   </div>

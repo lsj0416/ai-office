@@ -26,9 +26,9 @@ interface TaskFormData {
 }
 
 const STATUS_COLUMNS: { key: TaskStatus; label: string; color: string }[] = [
-  { key: 'TODO', label: '할 일', color: 'bg-gray-100' },
-  { key: 'IN_PROGRESS', label: '진행 중', color: 'bg-blue-50' },
-  { key: 'DONE', label: '완료', color: 'bg-green-50' },
+  { key: 'TODO', label: '할 일', color: 'bg-[#f4f6fb]' },
+  { key: 'IN_PROGRESS', label: '진행 중', color: 'bg-[#edf4ff]' },
+  { key: 'DONE', label: '완료', color: 'bg-[#eef8f1]' },
 ]
 
 const EMPTY_FORM: TaskFormData = { title: '', description: '', assigneeId: null }
@@ -153,61 +153,90 @@ export default function TasksPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="flex h-full flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">태스크</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="workspace-section-title">Task Board</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[var(--workspace-text)]">
+            태스크
+          </h1>
+          <p className="mt-2 text-sm text-[var(--workspace-muted)]">
             총 {tasks.length}개 · 완료 {tasks.filter((t) => t.status === 'DONE').length}개
           </p>
         </div>
-        <button
-          onClick={openAddForm}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + 태스크 추가
-        </button>
+
+        <div className="flex items-center gap-3">
+          <div className="workspace-stat-card px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a97ac]">
+              진행률
+            </p>
+            <p className="mt-2 text-lg font-semibold text-[var(--workspace-text)]">
+              {tasks.length === 0
+                ? '0%'
+                : `${Math.round((tasks.filter((t) => t.status === 'DONE').length / tasks.length) * 100)}%`}
+            </p>
+          </div>
+
+          <button
+            onClick={openAddForm}
+            className="rounded-[20px] bg-[#2f63d9] px-5 py-3 text-sm font-medium text-white shadow-[0_14px_30px_rgba(47,99,217,0.18)] hover:bg-[#2456c7]"
+          >
+            + 태스크 추가
+          </button>
+        </div>
       </div>
 
-      {/* 칸반 3열 */}
-      <div className="grid flex-1 grid-cols-3 gap-4">
+      <div className="grid flex-1 gap-4 xl:grid-cols-3">
         {STATUS_COLUMNS.map((col) => {
           const colTasks = tasks.filter((t) => t.status === col.key)
           return (
-            <div key={col.key} className={`rounded-xl p-3 ${col.color}`}>
-              <div className="mb-3 flex items-center justify-between px-1">
-                <span className="text-sm font-semibold text-gray-700">{col.label}</span>
-                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-500">
+            <section key={col.key} className={`workspace-subtle-panel flex min-h-[320px] flex-col p-4 ${col.color}`}>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--workspace-text)]">{col.label}</p>
+                  <p className="mt-1 text-xs text-[var(--workspace-muted)]">
+                    {col.key === 'TODO'
+                      ? '바로 착수할 작업'
+                      : col.key === 'IN_PROGRESS'
+                        ? '지금 진행 중인 작업'
+                        : '마무리된 결과'}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
                   {colTasks.length}
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="flex flex-1 flex-col gap-3">
                 {colTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-gray-100"
+                    className="workspace-stat-card rounded-[22px] p-4"
                   >
-                    <p className="text-sm font-medium text-gray-900">{task.title}</p>
+                    <p className="text-base font-semibold text-[var(--workspace-text)]">
+                      {task.title}
+                    </p>
 
                     {task.description && (
-                      <p className="mt-1 line-clamp-2 text-xs text-gray-500">{task.description}</p>
+                      <p className="mt-2 line-clamp-2 text-sm text-[var(--workspace-muted)]">
+                        {task.description}
+                      </p>
                     )}
 
                     {task.agents && (
-                      <div className="mt-2 flex items-center gap-1">
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-[#e7efff] text-xs font-bold text-[#2f63d9]">
                           {task.agents.name[0]}
                         </div>
-                        <span className="text-xs text-gray-400">{task.agents.name}</span>
+                        <span className="text-sm text-[var(--workspace-muted)]">{task.agents.name}</span>
                       </div>
                     )}
 
-                    <div className="mt-3 flex items-center justify-between">
+                    <div className="mt-4 flex items-center justify-between gap-3">
                       <select
                         value={task.status}
                         onChange={(e) => handleStatusChange(task, e.target.value as TaskStatus)}
-                        className="rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-600 focus:outline-none"
+                        className="rounded-xl border border-[var(--workspace-line)] bg-white px-2.5 py-1.5 text-xs text-gray-600 focus:outline-none"
                       >
                         {STATUS_COLUMNS.map((s) => (
                           <option key={s.key} value={s.key}>
@@ -219,13 +248,13 @@ export default function TasksPage({ params }: { params: { id: string } }) {
                       <div className="flex gap-1">
                         <button
                           onClick={() => openEditForm(task)}
-                          className="rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100"
+                          className="rounded-xl px-2.5 py-1 text-xs text-gray-500 hover:bg-gray-100"
                         >
                           수정
                         </button>
                         <button
                           onClick={() => handleDelete(task)}
-                          className="rounded px-2 py-0.5 text-xs text-red-400 hover:bg-red-50"
+                          className="rounded-xl px-2.5 py-1 text-xs text-red-400 hover:bg-red-50"
                         >
                           삭제
                         </button>
@@ -233,8 +262,18 @@ export default function TasksPage({ params }: { params: { id: string } }) {
                     </div>
                   </div>
                 ))}
+
+                {colTasks.length === 0 && (
+                  <div className="flex flex-1 items-center justify-center rounded-[22px] border border-dashed border-[var(--workspace-line)] bg-white/60 px-6 text-center text-sm text-[var(--workspace-muted)]">
+                    {col.key === 'DONE'
+                      ? '완료된 작업이 아직 없습니다.'
+                      : col.key === 'IN_PROGRESS'
+                        ? '진행 중인 작업이 비어 있습니다.'
+                        : '새 작업을 추가해 보세요.'}
+                  </div>
+                )}
               </div>
-            </div>
+            </section>
           )
         })}
       </div>

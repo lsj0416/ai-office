@@ -21,14 +21,17 @@
   --public-accent-soft: rgba(47, 99, 217, 0.12);
   --public-panel: #0d1524;
   --public-panel-soft: #18243a;
-  --workspace-bg: #f5f7fb;
-  --workspace-surface: rgba(255, 255, 255, 0.92);
+  --workspace-bg: #eef3fb;
+  --workspace-surface: rgba(255, 255, 255, 0.9);
+  --workspace-surface-strong: rgba(255, 255, 255, 0.98);
+  --workspace-surface-soft: rgba(245, 248, 255, 0.88);
   --workspace-line: #dbe3f0;
   --workspace-text: #111827;
   --workspace-muted: #6b7280;
   --workspace-accent: #d5e3ff;
   --workspace-accent-soft: #e8f0ff;
   --workspace-accent-strong: #2356b8;
+  --workspace-glow: rgba(85, 125, 214, 0.18);
   --office-bg: #070b13;
   --office-panel: rgba(15, 23, 42, 0.88);
   --office-panel-alt: rgba(23, 31, 48, 0.9);
@@ -84,6 +87,49 @@ textarea {
   border-radius: 24px;
   background: var(--workspace-surface);
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+}
+
+.workspace-shell {
+  background:
+    radial-gradient(circle at top left, rgba(120, 165, 255, 0.2), transparent 26%),
+    radial-gradient(circle at top right, rgba(79, 70, 229, 0.08), transparent 24%),
+    linear-gradient(180deg, #f7faff 0%, #eef3fb 100%);
+}
+
+.workspace-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 78%);
+}
+
+.workspace-subtle-panel {
+  border: 1px solid rgba(219, 227, 240, 0.88);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 248, 255, 0.9)),
+    var(--workspace-surface-soft);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
+}
+
+.workspace-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a97ac;
+}
+
+.workspace-stat-card {
+  border: 1px solid rgba(219, 227, 240, 0.92);
+  border-radius: 20px;
+  background: var(--workspace-surface-strong);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
 }
 
 .workspace-button {

@@ -261,27 +261,28 @@ export default function AutoPage({ params }: { params: { id: string } }) {
   const activeIndex = runState?.results.findIndex((r) => !r.done && r.content !== '') ?? -1
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* 헤더 + 모드 토글 */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
+    <div className="flex h-[calc(100vh-4rem)] flex-col gap-4">
+      <div className="workspace-subtle-panel px-6 py-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">AUTO 실행</h1>
-            <p className="text-sm text-gray-500">
+            <p className="workspace-section-title">Automation Loop</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[var(--workspace-text)]">
+              AUTO 실행
+            </h1>
+            <p className="mt-2 text-sm text-[var(--workspace-muted)]">
               {mode === 'auto'
                 ? 'AI가 적합한 에이전트를 선택해 순차적으로 실행합니다.'
                 : '에이전트와 실행 순서를 직접 지정합니다.'}
             </p>
           </div>
 
-          {/* 모드 토글 */}
-          <div className="flex rounded-xl border border-gray-200 p-0.5 text-sm">
+          <div className="flex rounded-[18px] border border-[var(--workspace-line)] bg-white p-1 text-sm shadow-sm">
             <button
               type="button"
               onClick={() => setMode('auto')}
               className={`rounded-lg px-4 py-1.5 font-medium transition ${
                 mode === 'auto'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-[#2f63d9] text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -292,7 +293,7 @@ export default function AutoPage({ params }: { params: { id: string } }) {
               onClick={() => setMode('manual')}
               className={`rounded-lg px-4 py-1.5 font-medium transition ${
                 mode === 'manual'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-[#2f63d9] text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -301,15 +302,15 @@ export default function AutoPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* 수동 모드: 에이전트 선택 패널 */}
         {mode === 'manual' && (
-          <div className="mt-4 flex flex-col gap-3">
-            {/* 팀 에이전트 목록 */}
+          <div className="mt-5 flex flex-col gap-4">
             {agents.length === 0 ? (
               <p className="text-sm text-gray-400">팀 탭에서 에이전트를 먼저 추가하세요.</p>
             ) : (
               <div>
-                <p className="mb-2 text-xs font-semibold text-gray-400">에이전트 추가</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a97ac]">
+                  에이전트 추가
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {agents.map((agent) => (
                     <button
@@ -327,10 +328,9 @@ export default function AutoPage({ params }: { params: { id: string } }) {
               </div>
             )}
 
-            {/* 선택된 스텝 목록 */}
             {manualSteps.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold text-gray-400">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a97ac]">
                   실행 순서 ({manualSteps.length}개)
                 </p>
                 <div className="flex flex-col gap-2">
@@ -339,12 +339,10 @@ export default function AutoPage({ params }: { params: { id: string } }) {
                       key={step.key}
                       className="flex items-start gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2"
                     >
-                      {/* 순서 번호 */}
                       <span className="mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
                         {i + 1}
                       </span>
 
-                      {/* 에이전트 이름 */}
                       <div className="mt-1.5 shrink-0">
                         <span
                           className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[step.role]}`}
@@ -353,7 +351,6 @@ export default function AutoPage({ params }: { params: { id: string } }) {
                         </span>
                       </div>
 
-                      {/* 서브태스크 입력 */}
                       <input
                         type="text"
                         value={step.subTask}
@@ -363,7 +360,6 @@ export default function AutoPage({ params }: { params: { id: string } }) {
                         className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-400 disabled:opacity-60"
                       />
 
-                      {/* 이동/삭제 버튼 */}
                       <div className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
@@ -402,174 +398,174 @@ export default function AutoPage({ params }: { params: { id: string } }) {
         )}
       </div>
 
-      {/* 결과 영역 */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        {!runState && !isRunning && (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center text-gray-400">
-              <p className="mb-3 text-4xl">⚡</p>
-              {mode === 'auto' ? (
-                <>
-                  <p className="text-sm">요청을 입력하면 AI 팀이 협력해서 처리합니다.</p>
-                  <p className="mt-1 text-xs text-gray-300">
-                    {'예: "랜딩 페이지 전략을 세우고 카피를 작성해줘"'}
+      <div className="workspace-subtle-panel flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {!runState && !isRunning && (
+            <div className="flex h-full items-center justify-center">
+              <div className="workspace-stat-card min-w-[320px] max-w-[520px] px-8 py-10 text-center text-gray-400">
+                <p className="mb-4 text-4xl">⚡</p>
+                {mode === 'auto' ? (
+                  <>
+                    <p className="text-sm text-[var(--workspace-text)]">
+                      요청을 입력하면 AI 팀이 협력해서 처리합니다.
+                    </p>
+                    <p className="mt-2 text-xs text-gray-400">
+                      {'예: "랜딩 페이지 전략을 세우고 카피를 작성해줘"'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm">
+                    {manualSteps.length === 0
+                      ? '위에서 에이전트를 추가하고 각 작업을 입력하세요.'
+                      : '전체 목표를 입력하고 실행을 누르세요.'}
                   </p>
-                </>
-              ) : (
-                <p className="text-sm">
-                  {manualSteps.length === 0
-                    ? '위에서 에이전트를 추가하고 각 작업을 입력하세요.'
-                    : '전체 목표를 입력하고 실행을 누르세요.'}
-                </p>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {runState && (
-          <div className="mx-auto max-w-2xl space-y-4">
-            {/* 오케스트레이터 분석 */}
-            {runState.analysis && (
-              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <p className="mb-1 text-xs font-semibold text-gray-400">
-                  {mode === 'manual' ? '수동 실행 계획' : '오케스트레이터 분석'}
-                </p>
-                <p className="text-sm text-gray-700">{runState.analysis}</p>
+          {runState && (
+            <div className="mx-auto max-w-3xl space-y-4">
+              {runState.analysis && (
+                <div className="rounded-[22px] border border-[var(--workspace-line)] bg-[#f7faff] px-4 py-3">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#8a97ac]">
+                    {mode === 'manual' ? '수동 실행 계획' : '오케스트레이터 분석'}
+                  </p>
+                  <p className="text-sm leading-7 text-gray-700">{runState.analysis}</p>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {runState.steps.map((step, i) => (
-                    <div key={`${step.agentId}-${i}`} className="flex items-center gap-1">
-                      {i > 0 && <span className="text-xs text-gray-300">→</span>}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {runState.steps.map((step, i) => (
+                      <div key={`${step.agentId}-${i}`} className="flex items-center gap-1">
+                        {i > 0 && <span className="text-xs text-gray-300">→</span>}
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[step.role]}`}
+                        >
+                          {step.agentName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {runState.results.map((result, i) => (
+                <div
+                  key={`${result.agentId}-${i}`}
+                  className="overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 ring-[var(--workspace-line)]"
+                >
+                  <div
+                    className={`flex items-center justify-between border-b border-gray-100 px-4 py-2.5 ${
+                      result.done ? 'bg-white' : activeIndex === i ? 'bg-blue-50' : 'bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-[#e7efff] text-xs font-bold text-[#2f63d9]">
+                        {result.agentName[0]}
+                      </div>
+                      <span className="text-sm font-medium text-gray-800">{result.agentName}</span>
                       <span
-                        className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[step.role]}`}
+                        className={`rounded-full border px-1.5 py-0.5 text-xs ${ROLE_COLORS[result.role]}`}
                       >
-                        {step.agentName}
+                        {result.role}
                       </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 에이전트별 결과 */}
-            {runState.results.map((result, i) => (
-              <div
-                key={`${result.agentId}-${i}`}
-                className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100"
-              >
-                <div
-                  className={`flex items-center justify-between border-b border-gray-100 px-4 py-2.5 ${
-                    result.done ? 'bg-white' : activeIndex === i ? 'bg-blue-50' : 'bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-                      {result.agentName[0]}
+                    <div className="flex items-center gap-1.5">
+                      <span className="max-w-[200px] truncate text-xs text-gray-400">
+                        {result.subTask}
+                      </span>
+                      {result.done ? (
+                        <span className="text-xs text-green-500">✓</span>
+                      ) : activeIndex === i ? (
+                        <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-blue-400" />
+                      ) : (
+                        <span className="inline-block h-3 w-3 rounded-full bg-gray-200" />
+                      )}
                     </div>
-                    <span className="text-sm font-medium text-gray-800">{result.agentName}</span>
-                    <span
-                      className={`rounded-full border px-1.5 py-0.5 text-xs ${ROLE_COLORS[result.role]}`}
-                    >
-                      {result.role}
-                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="max-w-[200px] truncate text-xs text-gray-400">
-                      {result.subTask}
-                    </span>
-                    {result.done ? (
-                      <span className="text-xs text-green-500">✓</span>
-                    ) : activeIndex === i ? (
-                      <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-blue-400" />
+
+                  <div className="px-4 py-3">
+                    {result.content ? (
+                      <p className="whitespace-pre-wrap text-sm text-gray-700">{result.content}</p>
                     ) : (
-                      <span className="inline-block h-3 w-3 rounded-full bg-gray-200" />
+                      <p className="animate-pulse text-sm text-gray-300">대기 중...</p>
+                    )}
+                    {!result.done && result.content && (
+                      <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-gray-400" />
                     )}
                   </div>
                 </div>
+              ))}
 
-                <div className="px-4 py-3">
-                  {result.content ? (
-                    <p className="whitespace-pre-wrap text-sm text-gray-700">{result.content}</p>
-                  ) : (
-                    <p className="animate-pulse text-sm text-gray-300">대기 중...</p>
-                  )}
-                  {!result.done && result.content && (
-                    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-gray-400" />
-                  )}
+              {runState.error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {runState.error}
                 </div>
-              </div>
-            ))}
+              )}
 
-            {runState.error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {runState.error}
-              </div>
-            )}
-
-            {runState.isDone && !runState.error && runState.followupTasks.length > 0 && (
-              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-                <p className="mb-2 text-xs font-semibold text-blue-500">
-                  💡 다음 작업 제안 (클릭하면 바로 실행)
-                </p>
-                <div className="flex flex-col gap-2">
-                  {runState.followupTasks.map((task, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleFollowupClick(task)}
-                      disabled={isRunning || currentGeneration >= 3}
-                      className="flex flex-col items-start gap-0.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-left hover:border-blue-400 hover:shadow-sm disabled:opacity-50"
-                    >
-                      <span className="text-sm font-medium text-gray-800">{task.title}</span>
-                      <span className="text-xs text-gray-500">{task.description}</span>
-                    </button>
-                  ))}
+              {runState.isDone && !runState.error && runState.followupTasks.length > 0 && (
+                <div className="rounded-[22px] border border-blue-100 bg-blue-50 px-4 py-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-blue-500">
+                    💡 다음 작업 제안 (클릭하면 바로 실행)
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {runState.followupTasks.map((task, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleFollowupClick(task)}
+                        disabled={isRunning || currentGeneration >= 3}
+                        className="flex flex-col items-start gap-0.5 rounded-lg border border-blue-200 bg-white px-3 py-2 text-left hover:border-blue-400 hover:shadow-sm disabled:opacity-50"
+                      >
+                        <span className="text-sm font-medium text-gray-800">{task.title}</span>
+                        <span className="text-xs text-gray-500">{task.description}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {runState.isDone && !runState.error && (
-              <div className="py-2 text-center text-xs text-gray-400">
-                ✓ 모든 에이전트 실행 완료
-              </div>
-            )}
+              {runState.isDone && !runState.error && (
+                <div className="py-2 text-center text-xs text-gray-400">
+                  ✓ 모든 에이전트 실행 완료
+                </div>
+              )}
 
-            <div ref={bottomRef} />
-          </div>
-        )}
-      </div>
-
-      {/* 입력창 */}
-      <div className="border-t border-gray-200 bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-2xl gap-2">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              mode === 'auto'
-                ? 'AI 팀에게 작업을 맡겨보세요 (Shift+Enter: 줄바꿈)'
-                : '전체 목표를 입력하세요 (각 에이전트에게 맥락으로 전달됩니다)'
-            }
-            rows={2}
-            disabled={isRunning}
-            className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-blue-400 focus:outline-none disabled:opacity-50"
-          />
-          <button
-            onClick={() => {
-              if (canRun) void handleRun()
-            }}
-            disabled={!canRun}
-            className="self-end rounded-xl bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
-          >
-            {isRunning ? '실행 중' : '실행'}
-          </button>
+              <div ref={bottomRef} />
+            </div>
+          )}
         </div>
-        {mode === 'manual' && manualSteps.some((s) => !s.subTask.trim()) && (
-          <p className="mx-auto mt-1.5 max-w-2xl text-xs text-amber-500">
-            모든 에이전트의 작업 내용을 입력해야 실행할 수 있습니다.
-          </p>
-        )}
+
+        <div className="border-t border-[var(--workspace-line)] bg-white/70 px-6 py-4">
+          <div className="mx-auto flex max-w-3xl gap-3">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                mode === 'auto'
+                  ? 'AI 팀에게 작업을 맡겨보세요 (Shift+Enter: 줄바꿈)'
+                  : '전체 목표를 입력하세요 (각 에이전트에게 맥락으로 전달됩니다)'
+              }
+              rows={2}
+              disabled={isRunning}
+              className="min-h-[60px] flex-1 resize-none rounded-[20px] border border-[var(--workspace-line)] bg-white px-4 py-3 text-sm focus:border-[#9db7f5] focus:outline-none focus:ring-4 focus:ring-[#e8f0ff] disabled:opacity-50"
+            />
+            <button
+              onClick={() => {
+                if (canRun) void handleRun()
+              }}
+              disabled={!canRun}
+              className="self-end rounded-[20px] bg-[#2f63d9] px-5 py-3 text-sm font-medium text-white shadow-[0_14px_30px_rgba(47,99,217,0.18)] hover:bg-[#2456c7] disabled:opacity-40"
+            >
+              {isRunning ? '실행 중' : '실행'}
+            </button>
+          </div>
+          {mode === 'manual' && manualSteps.some((s) => !s.subTask.trim()) && (
+            <p className="mx-auto mt-1.5 max-w-3xl text-xs text-amber-500">
+              모든 에이전트의 작업 내용을 입력해야 실행할 수 있습니다.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )

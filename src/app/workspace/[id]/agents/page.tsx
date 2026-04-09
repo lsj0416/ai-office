@@ -239,61 +239,79 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">팀 에이전트</h1>
-          <p className="mt-1 text-sm text-gray-500">에이전트를 추가하고 역할을 설정하세요.</p>
+          <p className="workspace-section-title">Team Directory</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[var(--workspace-text)]">
+            팀 에이전트
+          </h1>
+          <p className="mt-2 text-sm text-[var(--workspace-muted)]">
+            역할, 모델, 페르소나를 한 화면에서 관리합니다.
+          </p>
         </div>
-        <button
-          onClick={openAddForm}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + 에이전트 추가
-        </button>
+
+        <div className="flex items-center gap-3">
+          <div className="workspace-stat-card px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a97ac]">
+              Agents
+            </p>
+            <p className="mt-2 text-lg font-semibold text-[var(--workspace-text)]">{agents.length}</p>
+          </div>
+          <button
+            onClick={openAddForm}
+            className="rounded-[20px] bg-[#2f63d9] px-5 py-3 text-sm font-medium text-white shadow-[0_14px_30px_rgba(47,99,217,0.18)] hover:bg-[#2456c7]"
+          >
+            + 에이전트 추가
+          </button>
+        </div>
       </div>
 
       {agents.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-gray-400">
+        <div className="workspace-subtle-panel py-16 text-center text-[var(--workspace-muted)]">
           에이전트가 없습니다. 추가해보세요.
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid gap-4 lg:grid-cols-2">
           {agents.map((agent) => (
             <li
               key={agent.id}
-              className="flex items-start justify-between rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100"
+              className="workspace-stat-card flex items-start justify-between gap-4 rounded-[24px] p-5"
             >
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-[#e7efff] text-sm font-bold text-[#2f63d9]">
                   {agent.name[0]}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">
-                      <span
-                        className={`mr-1 text-xs font-semibold ${ROLE_TEXT_COLORS[agent.role]}`}
-                      >
-                        [{ROLE_LABELS[agent.role]}]
-                      </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-base font-semibold text-[var(--workspace-text)]">
                       {agent.name}
                     </span>
-                    <span className="text-xs text-gray-400">{agent.model}</span>
+                    <span
+                      className={`rounded-full bg-white px-2.5 py-1 text-xs font-semibold ${ROLE_TEXT_COLORS[agent.role]}`}
+                    >
+                      {ROLE_LABELS[agent.role]}
+                    </span>
+                    <span className="rounded-full bg-[#f4f7fc] px-2.5 py-1 text-xs text-[#8a97ac]">
+                      {agent.model}
+                    </span>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-gray-500">{agent.persona}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--workspace-muted)]">
+                    {agent.persona}
+                  </p>
                 </div>
               </div>
-              <div className="ml-4 flex shrink-0 gap-2">
+              <div className="ml-2 flex shrink-0 gap-2">
                 <button
                   onClick={() => openEditForm(agent)}
-                  className="rounded-lg px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                  className="rounded-xl border border-[var(--workspace-line)] px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
                 >
                   수정
                 </button>
                 <button
                   onClick={() => handleDelete(agent)}
                   disabled={deletingId === agent.id}
-                  className="rounded-lg px-3 py-1 text-sm text-red-500 hover:bg-red-50 disabled:opacity-40"
+                  className="rounded-xl border border-red-100 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 disabled:opacity-40"
                 >
                   {deletingId === agent.id ? '...' : '삭제'}
                 </button>

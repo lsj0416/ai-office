@@ -12,6 +12,7 @@ import {
   type DecisionStyle,
   type FeedbackStyle,
 } from '@/types'
+import type { MemoryMetadata } from '@/types/database'
 
 interface AgentRow {
   id: string
@@ -23,6 +24,15 @@ interface AgentRow {
   status: string
   order: number
 }
+
+interface MemoryRow {
+  id: string
+  content: string
+  metadata: MemoryMetadata
+  created_at: string
+}
+
+type DetailTab = 'info' | 'memories'
 
 interface AgentFormData {
   name: string
@@ -147,6 +157,14 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
+  // 에이전트 상세 모달
+  const [detailAgent, setDetailAgent] = useState<AgentRow | null>(null)
+  const [detailTab, setDetailTab] = useState<DetailTab>('info')
+  const [memories, setMemories] = useState<MemoryRow[]>([])
+  const [memoriesLoading, setMemoriesLoading] = useState(false)
+  const [memoriesError, setMemoriesError] = useState('')
+  const [deletingMemoryId, setDeletingMemoryId] = useState<string | null>(null)
+
   const fetchAgents = useCallback(async () => {
     setIsLoading(true)
     const res = await fetch(`/api/workspaces/${workspaceId}/agents`)
@@ -158,6 +176,51 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     void fetchAgents()
   }, [fetchAgents])
+
+  function openDetailModal(agent: AgentRow) {
+    setDetailAgent(agent)
+    setDetailTab('info')
+    setMemories([])
+    setMemoriesError('')
+  }
+
+  function closeDetailModal() {
+    setDetailAgent(null)
+  }
+
+  async function loadMemories(agentId: string) {
+    setMemoriesLoading(true)
+    setMemoriesError('')
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/agents/${agentId}/memories`)
+      const json = await res.json()
+      if (!res.ok) {
+        setMemoriesError('기억을 불러오지 못했습니다.')
+      } else {
+        setMemories((json.data as MemoryRow[]) ?? [])
+      }
+    } catch {
+      setMemoriesError('기억을 불러오지 못했습니다.')
+    } finally {
+      setMemoriesLoading(false)
+    }
+  }
+
+  async function handleDeleteMemory(memoryId: string) {
+    if (!detailAgent) return
+    setDeletingMemoryId(memoryId)
+    try {
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/agents/${detailAgent.id}/memories/${memoryId}`,
+        { method: 'DELETE' }
+      )
+      if (res.ok) {
+        setMemories((prev) => prev.filter((m) => m.id !== memoryId))
+      }
+    } finally {
+      setDeletingMemoryId(null)
+    }
+  }
 
   function openAddForm() {
     setEditingAgent(null)
@@ -256,7 +319,9 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a97ac]">
               Agents
             </p>
-            <p className="mt-2 text-lg font-semibold text-[var(--workspace-text)]">{agents.length}</p>
+            <p className="mt-2 text-lg font-semibold text-[var(--workspace-text)]">
+              {agents.length}
+            </p>
           </div>
           <button
             onClick={openAddForm}
@@ -278,7 +343,11 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
               key={agent.id}
               className="workspace-stat-card flex items-start justify-between gap-4 rounded-[24px] p-5"
             >
-              <div className="flex items-start gap-3">
+              <button
+                type="button"
+                onClick={() => openDetailModal(agent)}
+                className="flex flex-1 items-start gap-3 text-left"
+              >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-[#e7efff] text-sm font-bold text-[#2f63d9]">
                   {agent.name[0]}
                 </div>
@@ -300,7 +369,7 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
                     {agent.persona}
                   </p>
                 </div>
-              </div>
+              </button>
               <div className="ml-2 flex shrink-0 gap-2">
                 <button
                   onClick={() => openEditForm(agent)}
@@ -319,6 +388,153 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {detailAgent && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-8">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#e7efff] text-sm font-bold text-[#2f63d9]">
+                  {detailAgent.name[0]}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{detailAgent.name}</p>
+                  <p className="text-xs text-gray-400">{ROLE_LABELS[detailAgent.role]}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeDetailModal}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex border-b border-gray-100">
+              <button
+                type="button"
+                onClick={() => setDetailTab('info')}
+                className={`flex-1 py-2.5 text-sm font-medium transition ${
+                  detailTab === 'info'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                정보
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDetailTab('memories')
+                  void loadMemories(detailAgent.id)
+                }}
+                className={`flex-1 py-2.5 text-sm font-medium transition ${
+                  detailTab === 'memories'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                기억
+              </button>
+            </div>
+
+            <div className="p-6">
+              {detailTab === 'info' && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      모델
+                    </p>
+                    <p className="text-sm text-gray-700">{detailAgent.model}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      페르소나
+                    </p>
+                    <p className="text-sm leading-6 text-gray-700">{detailAgent.persona}</p>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeDetailModal()
+                        openEditForm(detailAgent)
+                      }}
+                      className="flex-1 rounded-lg border border-gray-200 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeDetailModal()
+                        void handleDelete(detailAgent)
+                      }}
+                      className="flex-1 rounded-lg border border-red-100 py-2 text-sm text-red-500 hover:bg-red-50"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {detailTab === 'memories' && (
+                <div>
+                  {memoriesLoading && (
+                    <p className="py-8 text-center text-sm text-gray-400">불러오는 중...</p>
+                  )}
+                  {memoriesError && (
+                    <p className="py-4 text-center text-sm text-red-500">{memoriesError}</p>
+                  )}
+                  {!memoriesLoading && !memoriesError && memories.length === 0 && (
+                    <div className="py-10 text-center">
+                      <p className="text-sm text-gray-400">아직 저장된 기억이 없습니다.</p>
+                      <p className="mt-1 text-xs text-gray-300">대화하면 자동으로 기억됩니다.</p>
+                    </div>
+                  )}
+                  {!memoriesLoading && !memoriesError && memories.length > 0 && (
+                    <ul className="space-y-2">
+                      {memories.map((memory) => (
+                        <li
+                          key={memory.id}
+                          className="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-3 text-sm leading-6 text-gray-700">
+                              {memory.content}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-400">
+                              {new Date(memory.created_at).toLocaleDateString('ko-KR', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteMemory(memory.id)}
+                            disabled={deletingMemoryId === memory.id}
+                            className="shrink-0 rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-400 disabled:opacity-40"
+                            aria-label="기억 삭제"
+                          >
+                            {deletingMemoryId === memory.id ? (
+                              <span className="inline-block h-3.5 w-3.5 animate-pulse rounded-full bg-gray-300" />
+                            ) : (
+                              '✕'
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {showForm && (

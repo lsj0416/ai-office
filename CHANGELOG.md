@@ -2,6 +2,26 @@
 
 All notable changes to AI Office are documented here.
 
+## [0.1.0.0] - 2026-04-13
+
+### Added
+- **오피스 충돌 시스템 리팩터**: `collision.ts` + `layout.ts` 분리. `buildOfficeCollisionMap` / `createOfficeWalkability` / `intersectsBlockingProps` 함수로 가구 충돌 감지를 구조화
+- **보안 에이전트 역할**: SECURITY 역할 추가. 취약점 분석 전용 시스템 프롬프트 + ROLE_COLORS/ROLE_LABELS 등록
+- **워크스페이스 설정 페이지**: `/workspace/[id]/settings` — 비전, 제품 설명, 핵심 기능 편집 UI
+
+### Changed
+- AgentFSM + usePixiOffice가 `isTileWalkable` 대신 가구 충돌을 반영한 `isOfficeTileWalkable` 사용
+- `OfficeProp` 타입과 `OFFICE_PROPS` 배열을 `manifest.ts`에서 `layout.ts`로 이동, `OfficePropAsset` 타입을 `types/office.ts`로 추출
+- `DESK_SCENE_CONFIGS` + `DeskFacing` 타입을 `constants.ts`에서 `layout.ts`로 이동
+- `isTileWalkable` → `isBaseTileWalkable` 로 명칭 변경 (하위호환 alias 유지)
+- 워크스페이스 내부 레이아웃 디자인 다듬기 (간격, 패딩, 글꼴 크기)
+
+### Fixed
+- 라운지 가구(소파, 소형 테이블) 타일이 BFS 경로에 포함되던 문제 수정
+- 벽 데코(액자, 식물)가 이동 차단 props로 잘못 분류되던 문제 수정
+
+---
+
 ## [0.1.0.0] - 2026-04-08
 
 ### Added

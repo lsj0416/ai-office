@@ -536,6 +536,23 @@ export default function AutoPage({ params }: { params: { id: string } }) {
         </div>
 
         <div className="border-t border-[var(--workspace-line)] bg-white/70 px-6 py-4">
+          <div className="mx-auto mb-2 flex max-w-3xl flex-wrap gap-2">
+            {[
+              '이번 주 스프린트 계획 세우기 — 현재 진행 중인 프로젝트의 이번 주 할 일을 정리하고 우선순위를 결정해주세요',
+              '신제품 출시 전 리스크 분석 — 출시 전 법적, 기술적, 마케팅 관점에서 잠재적 리스크를 분석해주세요',
+              '투자자 피치 준비 — 우리 서비스의 핵심 가치제안과 시장 기회를 투자자에게 설명하는 피치를 준비해주세요',
+            ].map((template) => (
+              <button
+                key={template}
+                type="button"
+                onClick={() => setInput(template)}
+                disabled={isRunning}
+                className="rounded-full border border-[var(--workspace-line)] bg-white px-3 py-1.5 text-xs text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-40"
+              >
+                {template.split(' — ')[0]}
+              </button>
+            ))}
+          </div>
           <div className="mx-auto flex max-w-3xl gap-3">
             <textarea
               value={input}

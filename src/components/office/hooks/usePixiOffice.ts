@@ -23,20 +23,19 @@ import {
   T_BREAK,
   T_WALL,
   COLORS,
-  DESK_SCENE_CONFIGS,
-  type DeskFacing,
-  DESK_POSITIONS,
   PLAYER_START,
   PLAYER_SPEED,
   PLAYER_HALF,
   PROXIMITY_RADIUS,
   TILE_TEXTURE_SCALE,
 } from '../constants'
+import { buildOfficeCollisionMap, createOfficeWalkability, intersectsBlockingProps } from '../collision'
+import { DESK_SCENE_CONFIGS, OFFICE_COLLISION_PROPS, type DeskFacing } from '../layout'
 import { OFFICE_LABELS, OFFICE_PROPS } from '../manifest'
 import { bfsPath } from '../pathfinding/bfs'
 import { resolvePropPlacement } from '../placement'
 import { OFFICE_THEME } from '../theme'
-import { OFFICE_MAP, getTileType, isTileWalkable } from '../tilemap'
+import { OFFICE_MAP, getTileType, isBaseTileWalkable } from '../tilemap'
 
 type PIXI = typeof PixiNS
 type Direction = 'down' | 'up' | 'left' | 'right'
@@ -89,10 +88,8 @@ interface CharacterNode {
   meetingArrived: boolean
 }
 
-const DESK_COLLISION_OFFSET_X = 10
-const DESK_COLLISION_WIDTH = TILE_SIZE * 3 - 16
-const DESK_COLLISION_OFFSET_Y = 40
-const DESK_COLLISION_HEIGHT = TILE_SIZE + 14
+const OFFICE_COLLISION_MAP = buildOfficeCollisionMap(OFFICE_COLLISION_PROPS)
+const isOfficeTileWalkable = createOfficeWalkability(OFFICE_COLLISION_MAP, isBaseTileWalkable)
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -103,22 +100,6 @@ function toFloorTile(worldX: number, worldY: number): TilePos {
     col: Math.floor(worldX / TILE_SIZE),
     row: Math.floor(worldY / TILE_SIZE),
   }
-}
-
-function intersectsDeskCollision(nx: number, ny: number, half: number) {
-  const left = nx - half
-  const right = nx + half
-  const top = ny - half
-  const bottom = ny + half
-
-  return DESK_POSITIONS.some(([deskCol, deskRow]) => {
-    const deskLeft = deskCol * TILE_SIZE + DESK_COLLISION_OFFSET_X
-    const deskRight = deskLeft + DESK_COLLISION_WIDTH
-    const deskTop = deskRow * TILE_SIZE + DESK_COLLISION_OFFSET_Y
-    const deskBottom = deskTop + DESK_COLLISION_HEIGHT
-
-    return left < deskRight && right > deskLeft && top < deskBottom && bottom > deskTop
-  })
 }
 
 function isWallBlocked(worldX: number, worldY: number) {
@@ -139,7 +120,7 @@ function canMoveTo(nx: number, ny: number): boolean {
     !isWallBlocked(nx + h, ny - h) &&
     !isWallBlocked(nx - h, ny + h) &&
     !isWallBlocked(nx + h, ny + h) &&
-    !intersectsDeskCollision(nx, ny, h)
+    !intersectsBlockingProps(OFFICE_COLLISION_MAP, nx, ny, h)
   )
 }
 
@@ -167,7 +148,7 @@ function findNearestWalkableTile(worldX: number, worldY: number): TilePos | null
   for (let radius = 0; radius <= 3; radius++) {
     for (let row = origin.row - radius; row <= origin.row + radius; row++) {
       for (let col = origin.col - radius; col <= origin.col + radius; col++) {
-        if (isTileWalkable(col, row)) {
+        if (isOfficeTileWalkable(col, row)) {
           return { col, row }
         }
       }
@@ -186,7 +167,7 @@ function buildMeetingPath(fromWorldX: number, fromWorldY: number, destination: T
   }
 
   const startWaypoint = tileWaypoint(startTile.col, startTile.row)
-  const travelPath = bfsPath(startTile, destination, isTileWalkable).map((tile) =>
+  const travelPath = bfsPath(startTile, destination, isOfficeTileWalkable).map((tile) =>
     tileWaypoint(tile.col, tile.row)
   )
 

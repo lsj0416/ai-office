@@ -6,6 +6,26 @@ export type OfficeVisualState = 'typing' | 'thinking' | 'idle' | 'meeting' | 'br
 export type OfficePropKind = 'wall' | 'floor'
 export type OfficeTileAnchor = 'top-left' | 'bottom-left' | 'bottom-center'
 export type OfficeMeetingStatus = 'gathering' | 'running' | 'done' | 'error'
+export type OfficePropAsset =
+  | 'deskFront'
+  | 'chairFront'
+  | 'chairSide'
+  | 'chairBack'
+  | 'whiteboard'
+  | 'bookshelf'
+  | 'doubleBookshelf'
+  | 'smallPainting'
+  | 'largePainting'
+  | 'hangingPlant'
+  | 'plant'
+  | 'largePlant'
+  | 'sofaFront'
+  | 'sofaSide'
+  | 'smallTableFront'
+  | 'coffeeTable'
+  | 'coffee'
+  | 'clock'
+  | 'bin'
 
 export interface TilePos {
   col: number
@@ -58,6 +78,26 @@ export interface OfficePropPlacement {
   sortBaseY?: number
   scale?: number
   mirror?: boolean
+}
+
+export interface OfficeCollisionBox {
+  offsetX: number
+  offsetY: number
+  width: number
+  height: number
+}
+
+export interface OfficeBlockedTile {
+  col: number
+  row: number
+}
+
+export interface OfficeProp {
+  asset: OfficePropAsset
+  placement: OfficePropPlacement
+  blocksMovement?: boolean
+  collisionBoxes?: OfficeCollisionBox[]
+  blockedTiles?: OfficeBlockedTile[]
 }
 
 export interface OfficeMeetingSeatAssignment {

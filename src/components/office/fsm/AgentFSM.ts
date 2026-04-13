@@ -9,8 +9,10 @@
 
 import type { AgentFSMStateType, TilePos } from '@/types/office'
 import type { Direction } from '../sprites/CharacterSprite'
+import { buildOfficeCollisionMap, createOfficeWalkability } from '../collision'
 import { TILE_SIZE, MAP_COLS, MAP_ROWS, AGENT_FSM } from '../constants'
-import { isTileWalkable } from '../tilemap'
+import { OFFICE_COLLISION_PROPS } from '../layout'
+import { isBaseTileWalkable } from '../tilemap'
 import { bfsPath } from '../pathfinding/bfs'
 
 interface Waypoint {
@@ -45,6 +47,9 @@ interface Internal {
   exitTileRow: number
 }
 
+const OFFICE_COLLISION_MAP = buildOfficeCollisionMap(OFFICE_COLLISION_PROPS)
+const isOfficeTileWalkable = createOfficeWalkability(OFFICE_COLLISION_MAP, isBaseTileWalkable)
+
 function tileCenter(col: number, row: number): Waypoint {
   return {
     x: col * TILE_SIZE + TILE_SIZE / 2,
@@ -62,7 +67,7 @@ function pickRandomDest(exitCol: number, exitRow: number): TilePos | null {
     const col = exitCol + Math.floor(Math.random() * 9) - 4
     const row = exitRow + Math.floor(Math.random() * 7) - 3
     if (col >= 1 && col < MAP_COLS - 1 && row >= 1 && row < MAP_ROWS - 1) {
-      if (isTileWalkable(col, row)) {
+      if (isOfficeTileWalkable(col, row)) {
         return { col, row }
       }
     }
@@ -71,7 +76,7 @@ function pickRandomDest(exitCol: number, exitRow: number): TilePos | null {
 }
 
 function bfsToWaypoints(from: TilePos, to: TilePos): Waypoint[] {
-  const path = bfsPath(from, to, isTileWalkable)
+  const path = bfsPath(from, to, isOfficeTileWalkable)
   return path.map((p) => tileCenter(p.col, p.row))
 }
 

@@ -35,10 +35,6 @@ AI Office 개발 추적 목록. 카테고리별 + 우선순위별 정렬.
 
 **Priority: P2**
 
-- **Orchestrator 워크스페이스 소유권 검증**
-  - orchestrate/route.ts의 workspace 조회에 user_id 필터 추가
-  - 현재 agents join으로 간접 확인되지만 명시적 user_id 체크 필요
-
 - **Followup tasks DB 저장 여부 검토**
   - 현재 followup tasks는 SSE로만 전달, DB에 TODO 저장 없음
   - 유저가 브라우저 닫으면 제안이 사라짐 — 필요시 tasks 테이블에 TODO 상태로 저장
@@ -57,6 +53,7 @@ AI Office 개발 추적 목록. 카테고리별 + 우선순위별 정렬.
 
 ## Completed
 
+- **Orchestrator 워크스페이스 소유권 검증** — Completed: v0.1.0.0 (2026-04-13)
 - **메모리 대시보드** — Completed: v0.1.0.0 (2026-04-13)
 - **Auto 모드 첫 화면** — Completed: v0.1.0.0 (2026-04-13)
 - **빠른 시작 템플릿 (Auto 페이지)** — Completed: v0.1.0.0 (2026-04-13)

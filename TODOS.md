@@ -19,10 +19,15 @@ AI Office 개발 추적 목록. 카테고리별 + 우선순위별 정렬.
 
 **Priority: P2**
 
-- **메모리 대시보드**
-  - 에이전트별 메모리 조회 UI
-  - GET /api/memory는 벡터 검색 전용이므로 신규 엔드포인트 필요
-  - Supabase 쿼리: `.eq("metadata->>agent_id", agentId)`
+- **단일 프롬프트 vs 파이프라인 비교 모드** (M, 3-4h)
+  - Auto 페이지에 단일 에이전트 응답과 파이프라인 응답을 나란히 표시
+  - PMF 검증 후 구현. 사용자 기반 확보 우선
+  - Deferred from: CEO 리뷰 2026-04-13
+
+- **주간 다이제스트** (M)
+  - 워크스페이스 활동 요약 자동 발송
+  - Supabase 무료 플랜 scheduled function 없음 → Vercel Cron 또는 별도 워커 필요
+  - Deferred from: CEO 리뷰 2026-04-13
 
 ---
 
@@ -52,6 +57,9 @@ AI Office 개발 추적 목록. 카테고리별 + 우선순위별 정렬.
 
 ## Completed
 
+- **메모리 대시보드** — Completed: v0.1.0.0 (2026-04-13)
+- **Auto 모드 첫 화면** — Completed: v0.1.0.0 (2026-04-13)
+- **빠른 시작 템플릿 (Auto 페이지)** — Completed: v0.1.0.0 (2026-04-13)
 - **Orchestrator Follow-up Tasks** — Completed: v0.1.0.0 (2026-04-13)
 - **RAG 파이프라인** — Completed: v0.1.0.0 (2026-04-13)
 - **음성 회의 STT/TTS** — Completed: v0.1.0.0 (2026-04-13)

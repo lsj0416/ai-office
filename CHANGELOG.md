@@ -2,6 +2,14 @@
 
 All notable changes to AI Office are documented here.
 
+## [0.1.0.0] - 2026-04-13 (updated)
+
+### Added
+- **메모리 대시보드**: 에이전트 카드 클릭 시 "기억" 탭에서 RAG 메모리 목록 확인 및 삭제 가능
+- **Auto 모드 첫 화면**: 워크스페이스 진입 시 바로 Auto 실행 화면으로 이동. 워크스페이스 목록에 "⚡ 바로 실행" 버튼 추가
+- **빠른 시작 템플릿**: Auto 페이지 입력창 위에 템플릿 칩 3개 (스프린트 계획 / 리스크 분석 / 투자자 피치) 노출
+- **메모리 API 2종 신규**: `GET /api/workspaces/[id]/agents/[agentId]/memories` (에이전트 기억 조회), `DELETE /api/workspaces/[id]/agents/[agentId]/memories/[memoryId]` (기억 삭제)
+
 ## [0.1.0.0] - 2026-04-13
 
 ### Added

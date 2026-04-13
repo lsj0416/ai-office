@@ -70,7 +70,12 @@ src/
 │       ├── OfficeCanvas.tsx       # 메인 React 래퍼
 │       ├── ChatDialog.tsx         # 근접 대화 오버레이
 │       ├── constants.ts           # 타일/캐릭터/색상 상수
-│       ├── tilemap.ts             # 20×15 맵 데이터 + 이동 가능 판정
+│       ├── tilemap.ts             # 20×15 맵 데이터 + isBaseTileWalkable
+│       ├── collision.ts           # 가구 충돌 맵 생성 + BFS walkability
+│       ├── layout.ts              # OFFICE_PROPS + DESK_SCENE_CONFIGS
+│       ├── manifest.ts            # 레이블 + OFFICE_PROPS re-export
+│       ├── fsm/
+│       │   └── AgentFSM.ts        # 에이전트 상태 기계 (출근/작업/이동/회의)
 │       ├── hooks/
 │       │   └── usePixiOffice.ts   # Pixi 게임 루프 훅
 │       └── sprites/
@@ -178,7 +183,8 @@ src/
 - [x] 아이들 보빙 / 걷기 다리 스윙 애니메이션
 - [x] 에이전트 근접 감지 → E키 대화 트리거 → ChatDialog 오버레이
 - [x] 스프라이트 교체 가능 구조 (CharacterSprite 인터페이스)
-- [ ] 직원 행동 패턴 FSM (출퇴근 / 회의실 이동 / 탕비실 이동)
+- [x] 오피스 충돌 시스템 리팩터 (collision.ts + layout.ts 분리, 가구 BFS 우회)
+- [ ] 직원 행동 패턴 FSM 완성 (출퇴근 / 회의실 이동 / 탕비실 이동)
 
 ### Phase 3 — 진행 중
 - [x] RAG 파이프라인 (OpenAI Embeddings + Supabase pgvector)

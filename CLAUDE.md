@@ -197,6 +197,11 @@ src/
 - [x] 음성 회의 UI 컴포넌트 (마이크 녹음 → STT → 에이전트 응답 스트리밍 → TTS 재생)
   - VoiceMeetingPanel (src/components/meeting/VoiceMeetingPanel.tsx)
   - /workspace/[id]/meeting 페이지 + 네비게이션 '회의' 탭
+- [x] 메모리 대시보드 (에이전트 기억 탭 — 조회/삭제)
+  - GET /api/workspaces/[id]/agents/[agentId]/memories
+  - DELETE /api/workspaces/[id]/agents/[agentId]/memories/[memoryId]
+- [x] Auto 모드 첫 화면 (workspace/[id] → /auto redirect + "⚡ 바로 실행" 버튼)
+- [x] 빠른 시작 템플릿 (Auto 페이지 칩 3개)
 
 ---
 

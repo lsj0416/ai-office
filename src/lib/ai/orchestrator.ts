@@ -148,7 +148,8 @@ export async function evaluatePipelineAndSuggestNextTasks(
       if (!t.title || !t.description) return []
       return [{ title: t.title.slice(0, 60), description: t.description.slice(0, 200) }]
     })
-  } catch {
+  } catch (err) {
+    console.error('[orchestrator] evaluatePipelineAndSuggestNextTasks failed:', err)
     return []
   }
 }

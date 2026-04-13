@@ -10,7 +10,7 @@ const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
 
 const requestSchema = z.object({
   text: z.string().min(1).max(2000),
-  voiceId: z.string().optional(),
+  voiceId: z.string().regex(/^[a-zA-Z0-9]{15,30}$/).optional(),
 })
 
 // POST /api/meeting/tts — 텍스트 → 음성 (ElevenLabs)
@@ -59,7 +59,8 @@ export async function POST(request: Request): Promise<Response> {
 
     if (!response.ok) {
       const errorText = await response.text()
-      return errorResponse(`ElevenLabs 오류: ${errorText}`, response.status)
+      console.error('[tts] ElevenLabs error:', response.status, errorText)
+      return errorResponse('TTS 서비스 오류가 발생했습니다', response.status >= 500 ? 502 : response.status)
     }
 
     const audioBuffer = await response.arrayBuffer()

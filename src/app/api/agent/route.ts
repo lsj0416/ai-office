@@ -70,8 +70,9 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const { data: agent, error: agentError } = await supabase
       .from('agents')
-      .select('id, name, persona, persona_detail, role, model')
+      .select('id, name, persona, persona_detail, role, model, workspaces!inner(user_id)')
       .eq('id', parsed.data.agentId)
+      .eq('workspaces.user_id', user.id)
       .single()
 
     if (agentError || !agent) {
@@ -89,6 +90,7 @@ export async function POST(request: Request): Promise<Response> {
         .from('workspaces')
         .select('*')
         .eq('id', parsed.data.workspaceId)
+        .eq('user_id', user.id)
         .single()
 
       if (wsRow) {

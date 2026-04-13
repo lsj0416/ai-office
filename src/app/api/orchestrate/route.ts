@@ -53,7 +53,7 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse('OpenAI API Key가 설정되지 않았습니다', 500)
   }
 
-  // 워크스페이스 조회 (소유 확인 + 회사 컨텍스트)
+  // 워크스페이스 소유권 확인 (에이전트 조회 전에 반드시 검증)
   const { data: wsRow } = await supabase
     .from('workspaces')
     .select('*')
@@ -61,19 +61,19 @@ export async function POST(request: Request): Promise<Response> {
     .eq('user_id', user.id)
     .single()
 
+  if (!wsRow) {
+    return errorResponse('접근 권한이 없습니다', 403)
+  }
+
   // 에이전트 조회
   const { data: agents } = await supabase
     .from('agents')
-    .select('id, name, role, persona, persona_detail, model, workspaces!inner(user_id)')
+    .select('id, name, role, persona, persona_detail, model')
     .eq('workspace_id', workspaceId)
     .order('order', { ascending: true })
 
   if (!agents || agents.length === 0) {
     return errorResponse('에이전트가 없습니다. 팀 탭에서 에이전트를 추가하세요.', 400)
-  }
-
-  if (!wsRow) {
-    return errorResponse('접근 권한이 없습니다', 403)
   }
 
   const companyContext = buildCompanyContext(rowToWorkspace(wsRow))

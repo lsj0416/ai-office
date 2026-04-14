@@ -12,6 +12,7 @@ import {
   type DecisionStyle,
   type FeedbackStyle,
 } from '@/types'
+import type { MemoryMetadata } from '@/types/database'
 
 interface AgentRow {
   id: string
@@ -23,6 +24,15 @@ interface AgentRow {
   status: string
   order: number
 }
+
+interface MemoryRow {
+  id: string
+  content: string
+  metadata: MemoryMetadata
+  created_at: string
+}
+
+type DetailTab = 'info' | 'memories'
 
 interface AgentFormData {
   name: string
@@ -52,20 +62,47 @@ const EMPTY_FORM: AgentFormData = {
 
 const ROLE_LABELS: Record<AgentRole, string> = {
   PM: 'PM',
-  DEVELOPER: '개발자',
+  BACKEND: '백엔드',
+  FRONTEND: '프론트',
+  DEVOPS: 'DevOps',
+  AI_DATA: 'AI/데이터',
+  SECURITY: '보안',
   MARKETER: '마케터',
   DESIGNER: '디자이너',
   REVIEWER: '리뷰어',
+  LEGAL: '법무',
   CUSTOM: '커스텀',
+  DEVELOPER: '개발자',
 }
 
-const ROLE_COLORS: Record<AgentRole, string> = {
+const _ROLE_COLORS: Record<AgentRole, string> = {
   PM: 'bg-blue-100 text-blue-700',
-  DEVELOPER: 'bg-purple-100 text-purple-700',
+  BACKEND: 'bg-violet-100 text-violet-700',
+  FRONTEND: 'bg-purple-100 text-purple-700',
+  DEVOPS: 'bg-cyan-100 text-cyan-700',
+  AI_DATA: 'bg-indigo-100 text-indigo-700',
+  SECURITY: 'bg-red-100 text-red-700',
   MARKETER: 'bg-orange-100 text-orange-700',
   DESIGNER: 'bg-pink-100 text-pink-700',
   REVIEWER: 'bg-green-100 text-green-700',
+  LEGAL: 'bg-amber-100 text-amber-700',
   CUSTOM: 'bg-gray-100 text-gray-700',
+  DEVELOPER: 'bg-purple-100 text-purple-700',
+}
+
+const ROLE_TEXT_COLORS: Record<AgentRole, string> = {
+  PM: 'text-blue-600',
+  BACKEND: 'text-violet-600',
+  FRONTEND: 'text-purple-600',
+  DEVOPS: 'text-cyan-600',
+  AI_DATA: 'text-indigo-600',
+  SECURITY: 'text-red-600',
+  MARKETER: 'text-orange-600',
+  DESIGNER: 'text-pink-600',
+  REVIEWER: 'text-green-600',
+  LEGAL: 'text-amber-600',
+  CUSTOM: 'text-gray-500',
+  DEVELOPER: 'text-purple-600',
 }
 
 const GENDER_OPTIONS: { value: AgentGender; label: string }[] = [
@@ -120,6 +157,14 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
+  // 에이전트 상세 모달
+  const [detailAgent, setDetailAgent] = useState<AgentRow | null>(null)
+  const [detailTab, setDetailTab] = useState<DetailTab>('info')
+  const [memories, setMemories] = useState<MemoryRow[]>([])
+  const [memoriesLoading, setMemoriesLoading] = useState(false)
+  const [memoriesError, setMemoriesError] = useState('')
+  const [deletingMemoryId, setDeletingMemoryId] = useState<string | null>(null)
+
   const fetchAgents = useCallback(async () => {
     setIsLoading(true)
     const res = await fetch(`/api/workspaces/${workspaceId}/agents`)
@@ -131,6 +176,51 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     void fetchAgents()
   }, [fetchAgents])
+
+  function openDetailModal(agent: AgentRow) {
+    setDetailAgent(agent)
+    setDetailTab('info')
+    setMemories([])
+    setMemoriesError('')
+  }
+
+  function closeDetailModal() {
+    setDetailAgent(null)
+  }
+
+  async function loadMemories(agentId: string) {
+    setMemoriesLoading(true)
+    setMemoriesError('')
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/agents/${agentId}/memories`)
+      const json = await res.json()
+      if (!res.ok) {
+        setMemoriesError('기억을 불러오지 못했습니다.')
+      } else {
+        setMemories((json.data as MemoryRow[]) ?? [])
+      }
+    } catch {
+      setMemoriesError('기억을 불러오지 못했습니다.')
+    } finally {
+      setMemoriesLoading(false)
+    }
+  }
+
+  async function handleDeleteMemory(memoryId: string) {
+    if (!detailAgent) return
+    setDeletingMemoryId(memoryId)
+    try {
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/agents/${detailAgent.id}/memories/${memoryId}`,
+        { method: 'DELETE' }
+      )
+      if (res.ok) {
+        setMemories((prev) => prev.filter((m) => m.id !== memoryId))
+      }
+    } finally {
+      setDeletingMemoryId(null)
+    }
+  }
 
   function openAddForm() {
     setEditingAgent(null)
@@ -212,59 +302,85 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">팀 에이전트</h1>
-          <p className="mt-1 text-sm text-gray-500">에이전트를 추가하고 역할을 설정하세요.</p>
+          <p className="workspace-section-title">Team Directory</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[var(--workspace-text)]">
+            팀 에이전트
+          </h1>
+          <p className="mt-2 text-sm text-[var(--workspace-muted)]">
+            역할, 모델, 페르소나를 한 화면에서 관리합니다.
+          </p>
         </div>
-        <button
-          onClick={openAddForm}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + 에이전트 추가
-        </button>
+
+        <div className="flex items-center gap-3">
+          <div className="workspace-stat-card px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a97ac]">
+              Agents
+            </p>
+            <p className="mt-2 text-lg font-semibold text-[var(--workspace-text)]">
+              {agents.length}
+            </p>
+          </div>
+          <button
+            onClick={openAddForm}
+            className="rounded-[20px] bg-[#2f63d9] px-5 py-3 text-sm font-medium text-white shadow-[0_14px_30px_rgba(47,99,217,0.18)] hover:bg-[#2456c7]"
+          >
+            + 에이전트 추가
+          </button>
+        </div>
       </div>
 
       {agents.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center text-gray-400">
+        <div className="workspace-subtle-panel py-16 text-center text-[var(--workspace-muted)]">
           에이전트가 없습니다. 추가해보세요.
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid gap-4 lg:grid-cols-2">
           {agents.map((agent) => (
             <li
               key={agent.id}
-              className="flex items-start justify-between rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100"
+              className="workspace-stat-card flex items-start justify-between gap-4 rounded-[24px] p-5"
             >
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+              <button
+                type="button"
+                onClick={() => openDetailModal(agent)}
+                className="flex flex-1 items-start gap-3 text-left"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-[#e7efff] text-sm font-bold text-[#2f63d9]">
                   {agent.name[0]}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{agent.name}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-base font-semibold text-[var(--workspace-text)]">
+                      {agent.name}
+                    </span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[agent.role]}`}
+                      className={`rounded-full bg-white px-2.5 py-1 text-xs font-semibold ${ROLE_TEXT_COLORS[agent.role]}`}
                     >
                       {ROLE_LABELS[agent.role]}
                     </span>
-                    <span className="text-xs text-gray-400">{agent.model}</span>
+                    <span className="rounded-full bg-[#f4f7fc] px-2.5 py-1 text-xs text-[#8a97ac]">
+                      {agent.model}
+                    </span>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-gray-500">{agent.persona}</p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--workspace-muted)]">
+                    {agent.persona}
+                  </p>
                 </div>
-              </div>
-              <div className="ml-4 flex shrink-0 gap-2">
+              </button>
+              <div className="ml-2 flex shrink-0 gap-2">
                 <button
                   onClick={() => openEditForm(agent)}
-                  className="rounded-lg px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                  className="rounded-xl border border-[var(--workspace-line)] px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
                 >
                   수정
                 </button>
                 <button
                   onClick={() => handleDelete(agent)}
                   disabled={deletingId === agent.id}
-                  className="rounded-lg px-3 py-1 text-sm text-red-500 hover:bg-red-50 disabled:opacity-40"
+                  className="rounded-xl border border-red-100 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 disabled:opacity-40"
                 >
                   {deletingId === agent.id ? '...' : '삭제'}
                 </button>
@@ -272,6 +388,153 @@ export default function AgentsPage({ params }: { params: { id: string } }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {detailAgent && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-8">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#e7efff] text-sm font-bold text-[#2f63d9]">
+                  {detailAgent.name[0]}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{detailAgent.name}</p>
+                  <p className="text-xs text-gray-400">{ROLE_LABELS[detailAgent.role]}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeDetailModal}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex border-b border-gray-100">
+              <button
+                type="button"
+                onClick={() => setDetailTab('info')}
+                className={`flex-1 py-2.5 text-sm font-medium transition ${
+                  detailTab === 'info'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                정보
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDetailTab('memories')
+                  void loadMemories(detailAgent.id)
+                }}
+                className={`flex-1 py-2.5 text-sm font-medium transition ${
+                  detailTab === 'memories'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                기억
+              </button>
+            </div>
+
+            <div className="p-6">
+              {detailTab === 'info' && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      모델
+                    </p>
+                    <p className="text-sm text-gray-700">{detailAgent.model}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      페르소나
+                    </p>
+                    <p className="text-sm leading-6 text-gray-700">{detailAgent.persona}</p>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeDetailModal()
+                        openEditForm(detailAgent)
+                      }}
+                      className="flex-1 rounded-lg border border-gray-200 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeDetailModal()
+                        void handleDelete(detailAgent)
+                      }}
+                      className="flex-1 rounded-lg border border-red-100 py-2 text-sm text-red-500 hover:bg-red-50"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {detailTab === 'memories' && (
+                <div>
+                  {memoriesLoading && (
+                    <p className="py-8 text-center text-sm text-gray-400">불러오는 중...</p>
+                  )}
+                  {memoriesError && (
+                    <p className="py-4 text-center text-sm text-red-500">{memoriesError}</p>
+                  )}
+                  {!memoriesLoading && !memoriesError && memories.length === 0 && (
+                    <div className="py-10 text-center">
+                      <p className="text-sm text-gray-400">아직 저장된 기억이 없습니다.</p>
+                      <p className="mt-1 text-xs text-gray-300">대화하면 자동으로 기억됩니다.</p>
+                    </div>
+                  )}
+                  {!memoriesLoading && !memoriesError && memories.length > 0 && (
+                    <ul className="space-y-2">
+                      {memories.map((memory) => (
+                        <li
+                          key={memory.id}
+                          className="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-3 text-sm leading-6 text-gray-700">
+                              {memory.content}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-400">
+                              {new Date(memory.created_at).toLocaleDateString('ko-KR', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteMemory(memory.id)}
+                            disabled={deletingMemoryId === memory.id}
+                            className="shrink-0 rounded-lg p-1.5 text-gray-300 hover:bg-red-50 hover:text-red-400 disabled:opacity-40"
+                            aria-label="기억 삭제"
+                          >
+                            {deletingMemoryId === memory.id ? (
+                              <span className="inline-block h-3.5 w-3.5 animate-pulse rounded-full bg-gray-300" />
+                            ) : (
+                              '✕'
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {showForm && (

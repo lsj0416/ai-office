@@ -40,18 +40,26 @@ export default async function WorkspacePage() {
           <ul className="mb-4 space-y-2">
             {workspaces.map((ws) => (
               <li key={ws.id}>
-                <Link
-                  href={`/workspace/${ws.id}/chat`}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{ws.name}</p>
-                    {ws.vision && (
-                      <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">{ws.vision}</p>
-                    )}
-                  </div>
-                  <span className="text-gray-300">→</span>
-                </Link>
+                <div className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50">
+                  <Link
+                    href={`/workspace/${ws.id}/auto`}
+                    className="flex flex-1 items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">{ws.name}</p>
+                      {ws.vision && (
+                        <p className="mt-0.5 line-clamp-1 text-xs text-gray-400">{ws.vision}</p>
+                      )}
+                    </div>
+                    <span className="text-gray-300">→</span>
+                  </Link>
+                  <Link
+                    href={`/workspace/${ws.id}/auto`}
+                    className="shrink-0 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-100"
+                  >
+                    ⚡ 바로 실행
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

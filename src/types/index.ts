@@ -1,4 +1,16 @@
-export type AgentRole = 'PM' | 'DEVELOPER' | 'MARKETER' | 'DESIGNER' | 'REVIEWER' | 'CUSTOM'
+export type AgentRole =
+  | 'PM'
+  | 'BACKEND'
+  | 'FRONTEND'
+  | 'DEVOPS'
+  | 'AI_DATA'
+  | 'SECURITY'
+  | 'MARKETER'
+  | 'DESIGNER'
+  | 'REVIEWER'
+  | 'LEGAL'
+  | 'CUSTOM'
+  | 'DEVELOPER' // 레거시 호환용
 
 export type AgentStatus = 'WORKING' | 'THINKING' | 'IDLE' | 'MEETING' | 'BREAK' | 'GONE'
 
@@ -27,11 +39,24 @@ export type ExecutionMode = 'AUTO' | 'PIPELINE' | 'CHAT'
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE'
 
+export type TaskSource = 'manual' | 'ai_followup'
+
+export interface WorkspaceProduct {
+  name: string
+  description: string
+  status: 'planning' | 'development' | 'launched' | 'deprecated'
+}
+
 export interface Workspace {
   id: string
   name: string
   vision: string
   business: string[]
+  industry?: string
+  targetCustomer?: string
+  products?: WorkspaceProduct[]
+  teamCulture?: string
+  keyMetrics?: string
   userId: string
   createdAt: string
   updatedAt: string
@@ -74,5 +99,7 @@ export interface Task {
   description?: string
   assigneeId?: string
   status: TaskStatus
+  generation: number
+  source: TaskSource
   createdAt: string
 }

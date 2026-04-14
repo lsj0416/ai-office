@@ -2,6 +2,8 @@ import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { errorResponse, successResponse } from '@/types/api'
 
+export const maxDuration = 60
+
 // POST /api/meeting/stt — 음성 → 텍스트 (Whisper)
 // multipart/form-data: { audio: File }
 export async function POST(request: Request): Promise<Response> {

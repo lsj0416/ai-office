@@ -191,87 +191,134 @@ export default function ChatPage({ params }: { params: { id: string } }) {
 
   if (agents.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-400">
+      <div className="workspace-subtle-panel flex h-full min-h-[420px] items-center justify-center text-sm text-[var(--workspace-muted)]">
         에이전트가 없습니다.
       </div>
     )
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* 에이전트 선택 */}
-      <div className="flex gap-2 border-b border-gray-200 bg-white px-4 py-3">
-        {agents.map((agent) => (
-          <button
-            key={agent.id}
-            onClick={() => setSelectedAgent(agent)}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-              selectedAgent?.id === agent.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {agent.name}
-            <span className="ml-1 text-xs opacity-70">({agent.role})</span>
-          </button>
-        ))}
-      </div>
-
-      {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            <p>{selectedAgent?.name}에게 메시지를 보내보세요.</p>
+    <div className="flex h-[calc(100vh-4rem)] flex-col gap-4">
+      <div className="workspace-subtle-panel px-5 py-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="workspace-section-title">Direct Thread</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-[var(--workspace-text)]">
+              팀 채팅
+            </h1>
+            <p className="mt-2 text-sm text-[var(--workspace-muted)]">
+              역할별 에이전트와 바로 대화하고, 답변은 스레드에 이어서 쌓입니다.
+            </p>
           </div>
-        )}
-        <div className="mx-auto max-w-2xl space-y-4">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+
+          {selectedAgent && (
+            <div className="workspace-stat-card min-w-[220px] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a97ac]">
+                Active Agent
+              </p>
+              <p className="mt-2 text-lg font-semibold text-[var(--workspace-text)]">
+                {selectedAgent.name}
+              </p>
+              <p className="mt-1 text-sm text-[var(--workspace-muted)]">
+                {selectedAgent.role} · {selectedAgent.model}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {agents.map((agent) => (
+            <button
+              key={agent.id}
+              onClick={() => setSelectedAgent(agent)}
+              className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                selectedAgent?.id === agent.id
+                  ? 'border-[#c7d9ff] bg-[#2f63d9] text-white shadow-[0_12px_24px_rgba(47,99,217,0.18)]'
+                  : 'border-[var(--workspace-line)] bg-white text-[var(--workspace-muted)] hover:border-[#bfd0ee] hover:bg-[#f8fbff] hover:text-[var(--workspace-text)]'
+              }`}
             >
-              {msg.role === 'assistant' && (
-                <div className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-                  {selectedAgent?.name[0]}
-                </div>
-              )}
-              <div
-                className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-100'
+              {agent.name}
+              <span
+                className={`ml-1 text-xs ${
+                  selectedAgent?.id === agent.id ? 'text-white/75' : 'text-[#8a97ac]'
                 }`}
               >
-                {msg.content}
-                {msg.role === 'assistant' && msg.content === '' && (
-                  <span className="inline-block h-4 w-1 animate-pulse bg-gray-400" />
-                )}
-              </div>
-            </div>
+                ({agent.role})
+              </span>
+            </button>
           ))}
-          <div ref={bottomRef} />
         </div>
       </div>
 
-      {/* 입력창 */}
-      <div className="border-t border-gray-200 bg-white px-4 py-3">
-        <div className="mx-auto flex max-w-2xl gap-2">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`${selectedAgent?.name ?? '에이전트'}에게 메시지 보내기 (Shift+Enter: 줄바꿈)`}
-            rows={1}
-            disabled={isStreaming || !threadId}
-            className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2 text-sm focus:border-blue-400 focus:outline-none disabled:opacity-50"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || isStreaming || !threadId}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40"
-          >
-            {isStreaming ? '...' : '전송'}
-          </button>
+      <div className="workspace-subtle-panel flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="border-b border-[var(--workspace-line)] px-5 py-4">
+          <p className="text-sm font-medium text-[var(--workspace-text)]">
+            {selectedAgent?.persona || `${selectedAgent?.name ?? '에이전트'}와 대화를 시작하세요.`}
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {messages.length === 0 && (
+            <div className="workspace-stat-card flex h-full min-h-[280px] items-center justify-center text-center text-[var(--workspace-muted)]">
+              <div>
+                <p className="text-sm font-medium text-[var(--workspace-text)]">
+                  {selectedAgent?.name}에게 메시지를 보내보세요.
+                </p>
+                <p className="mt-2 text-sm">
+                  업무 지시, 아이디어 검토, 카피 초안까지 바로 이어서 진행할 수 있습니다.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="mx-auto max-w-3xl space-y-5">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.role === 'assistant' && (
+                  <div className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#e7efff] text-xs font-bold text-[#2f63d9]">
+                    {selectedAgent?.name[0]}
+                  </div>
+                )}
+                <div
+                  className={`max-w-[82%] whitespace-pre-wrap rounded-[24px] px-5 py-3 text-sm leading-7 shadow-sm ${
+                    msg.role === 'user'
+                      ? 'bg-[#2f63d9] text-white shadow-[0_18px_36px_rgba(47,99,217,0.22)]'
+                      : 'border border-[var(--workspace-line)] bg-white text-gray-800'
+                  }`}
+                >
+                  {msg.content}
+                  {msg.role === 'assistant' && msg.content === '' && (
+                    <span className="inline-block h-4 w-1 animate-pulse bg-gray-400" />
+                  )}
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+        </div>
+
+        <div className="border-t border-[var(--workspace-line)] bg-white/70 px-5 py-4">
+          <div className="mx-auto flex max-w-3xl gap-3">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`${selectedAgent?.name ?? '에이전트'}에게 메시지 보내기 (Shift+Enter: 줄바꿈)`}
+              rows={1}
+              disabled={isStreaming || !threadId}
+              className="min-h-[56px] flex-1 resize-none rounded-[20px] border border-[var(--workspace-line)] bg-white px-4 py-3 text-sm focus:border-[#9db7f5] focus:outline-none focus:ring-4 focus:ring-[#e8f0ff] disabled:opacity-50"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || isStreaming || !threadId}
+              className="rounded-[20px] bg-[#2f63d9] px-5 py-3 text-sm font-medium text-white shadow-[0_14px_30px_rgba(47,99,217,0.18)] hover:bg-[#2456c7] disabled:opacity-40"
+            >
+              {isStreaming ? '...' : '전송'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

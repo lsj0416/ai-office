@@ -1,9 +1,12 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { createOrchestrationPlan } from '@/lib/ai/orchestrator'
+import { createOrchestrationPlan, evaluatePipelineAndSuggestNextTasks } from '@/lib/ai/orchestrator'
 import { runWorkerStream } from '@/lib/ai/worker'
 import { buildRagContext } from '@/lib/ai/rag'
+import { buildCompanyContext, rowToWorkspace } from '@/lib/ai/context'
 import { errorResponse } from '@/types/api'
+
+export const maxDuration = 60
 
 const manualStepSchema = z.object({
   agentId: z.string(),
@@ -15,6 +18,7 @@ const requestSchema = z.object({
   message: z.string().min(1).max(2000),
   participantIds: z.array(z.string().uuid()).min(1).optional(),
   manualSteps: z.array(manualStepSchema).min(1).optional(),
+  generation: z.number().int().min(0).max(10).optional().default(0),
 })
 
 // SSE 이벤트 직렬화
@@ -43,16 +47,28 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse(parsed.error.issues[0]?.message ?? '입력값이 올바르지 않습니다', 400)
   }
 
-  const { workspaceId, message, participantIds, manualSteps } = parsed.data
+  const { workspaceId, message, participantIds, manualSteps, generation } = parsed.data
 
   if (!process.env.OPENAI_API_KEY) {
     return errorResponse('OpenAI API Key가 설정되지 않았습니다', 500)
   }
 
-  // 워크스페이스 소유 확인 + 에이전트 조회
+  // 워크스페이스 소유권 확인 (에이전트 조회 전에 반드시 검증)
+  const { data: wsRow } = await supabase
+    .from('workspaces')
+    .select('*')
+    .eq('id', workspaceId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!wsRow) {
+    return errorResponse('접근 권한이 없습니다', 403)
+  }
+
+  // 에이전트 조회
   const { data: agents } = await supabase
     .from('agents')
-    .select('id, name, role, persona, persona_detail, model, workspaces!inner(user_id)')
+    .select('id, name, role, persona, persona_detail, model')
     .eq('workspace_id', workspaceId)
     .order('order', { ascending: true })
 
@@ -60,10 +76,7 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse('에이전트가 없습니다. 팀 탭에서 에이전트를 추가하세요.', 400)
   }
 
-  const firstAgent = agents[0] as { workspaces: { user_id: string } | null }
-  if (firstAgent?.workspaces?.user_id !== user.id) {
-    return errorResponse('접근 권한이 없습니다', 403)
-  }
+  const companyContext = buildCompanyContext(rowToWorkspace(wsRow))
 
   const agentList = agents.map((a) => ({
     id: a.id,
@@ -89,8 +102,9 @@ export async function POST(request: Request): Promise<Response> {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        // 1. RAG 컨텍스트 조회
+        // 1. RAG 컨텍스트 조회 + 회사 컨텍스트 결합
         const ragContext = await buildRagContext(workspaceId, message).catch(() => '')
+        const fullContext = ragContext ? `${companyContext}\n\n${ragContext}` : companyContext
 
         // 2. 실행 계획 수립 (수동 선택이면 오케스트레이터 생략)
         let plan: import('@/lib/ai/orchestrator').OrchestratorPlan
@@ -130,7 +144,7 @@ export async function POST(request: Request): Promise<Response> {
             ],
           }
         } else {
-          plan = await createOrchestrationPlan(message, scopedAgentList)
+          plan = await createOrchestrationPlan(message, scopedAgentList, companyContext)
         }
 
         controller.enqueue(
@@ -184,7 +198,7 @@ export async function POST(request: Request): Promise<Response> {
             personaDetail: agentMeta?.personaDetail,
             model: step.model,
             messages: workerMessages,
-            workspaceContext: ragContext || undefined,
+            workspaceContext: fullContext || undefined,
           })
 
           const reader = workerStream.getReader()
@@ -204,6 +218,40 @@ export async function POST(request: Request): Promise<Response> {
             { agentName: step.agentName, content: agentContent },
           ]
           controller.enqueue(sseEvent({ type: 'agent_done', agentId: step.agentId }))
+        }
+
+        // 4. 파이프라인 결과 태스크로 저장 (status: DONE)
+        if (previousResults.length > 0) {
+          const taskRows = previousResults.map((r) => ({
+            workspace_id: workspaceId,
+            title: `[${r.agentName}] ${message.slice(0, 50)}`,
+            description: r.content.slice(0, 500),
+            status: 'DONE' as const,
+            generation,
+            source: 'ai_followup' as const,
+          }))
+          try {
+            await supabase.from('tasks').insert(taskRows)
+          } catch {
+            /* non-critical */
+          }
+        }
+
+        // 5. 후속 태스크 평가 (generation < 3일 때만)
+        if (generation < 3 && previousResults.length > 0) {
+          const followupTasks = await evaluatePipelineAndSuggestNextTasks(message, previousResults)
+
+          if (followupTasks.length > 0) {
+            controller.enqueue(
+              sseEvent({
+                type: 'followup_tasks',
+                tasks: followupTasks.map((t) => ({
+                  ...t,
+                  generation: generation + 1,
+                })),
+              })
+            )
+          }
         }
 
         controller.enqueue(sseEvent({ type: 'done' }))

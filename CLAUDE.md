@@ -70,7 +70,12 @@ src/
 │       ├── OfficeCanvas.tsx       # 메인 React 래퍼
 │       ├── ChatDialog.tsx         # 근접 대화 오버레이
 │       ├── constants.ts           # 타일/캐릭터/색상 상수
-│       ├── tilemap.ts             # 20×15 맵 데이터 + 이동 가능 판정
+│       ├── tilemap.ts             # 20×15 맵 데이터 + isBaseTileWalkable
+│       ├── collision.ts           # 가구 충돌 맵 생성 + BFS walkability
+│       ├── layout.ts              # OFFICE_PROPS + DESK_SCENE_CONFIGS
+│       ├── manifest.ts            # 레이블 + OFFICE_PROPS re-export
+│       ├── fsm/
+│       │   └── AgentFSM.ts        # 에이전트 상태 기계 (출근/작업/이동/회의)
 │       ├── hooks/
 │       │   └── usePixiOffice.ts   # Pixi 게임 루프 훅
 │       └── sprites/
@@ -178,7 +183,8 @@ src/
 - [x] 아이들 보빙 / 걷기 다리 스윙 애니메이션
 - [x] 에이전트 근접 감지 → E키 대화 트리거 → ChatDialog 오버레이
 - [x] 스프라이트 교체 가능 구조 (CharacterSprite 인터페이스)
-- [ ] 직원 행동 패턴 FSM (출퇴근 / 회의실 이동 / 탕비실 이동)
+- [x] 오피스 충돌 시스템 리팩터 (collision.ts + layout.ts 분리, 가구 BFS 우회)
+- [ ] 직원 행동 패턴 FSM 완성 (출퇴근 / 회의실 이동 / 탕비실 이동)
 
 ### Phase 3 — 진행 중
 - [x] RAG 파이프라인 (OpenAI Embeddings + Supabase pgvector)
@@ -191,6 +197,11 @@ src/
 - [x] 음성 회의 UI 컴포넌트 (마이크 녹음 → STT → 에이전트 응답 스트리밍 → TTS 재생)
   - VoiceMeetingPanel (src/components/meeting/VoiceMeetingPanel.tsx)
   - /workspace/[id]/meeting 페이지 + 네비게이션 '회의' 탭
+- [x] 메모리 대시보드 (에이전트 기억 탭 — 조회/삭제)
+  - GET /api/workspaces/[id]/agents/[agentId]/memories
+  - DELETE /api/workspaces/[id]/agents/[agentId]/memories/[memoryId]
+- [x] Auto 모드 첫 화면 (workspace/[id] → /auto redirect + "⚡ 바로 실행" 버튼)
+- [x] 빠른 시작 템플릿 (Auto 페이지 칩 3개)
 
 ---
 
@@ -216,3 +227,32 @@ src/
 - 특정 모델에 종속되지 않도록 AI Provider 추상화 레이어 유지
 - RAG 없이 전체 히스토리를 프롬프트에 넣지 말 것 (비용 폭발)
 - 1인 개발 → 과도한 추상화 지양, 빠른 검증 우선
+
+## gstack
+
+이 프로젝트는 `gstack` 사용을 허용한다. 특히 Codex에서 다음 원칙을 따른다.
+
+- Codex 전역 설치: `git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.codex/skills/gstack && cd ~/.codex/skills/gstack && ./setup --host codex`
+- 설치 후 Codex가 gstack skill을 읽을 수 있으면 브라우저 기반 검증은 gstack의 `/browse` 또는 `/qa` 계열 skill을 우선 사용한다.
+- 기획 검토는 `/office-hours`, 아키텍처 검토는 `/plan-eng-review`, 버그 조사는 `/investigate`, 코드 리뷰는 `/review`, 문서 동기화는 `/document-release`를 우선 고려한다.
+- gstack의 일반 규칙보다 이 문서의 프로젝트 컨텍스트와 코딩 원칙을 우선한다.
+
+## Skill routing
+
+When the user's request matches an available skill, ALWAYS invoke it using the Skill
+tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
+The skill has specialized workflows that produce better results than ad-hoc answers.
+
+Key routing rules:
+- Product ideas, "is this worth building", brainstorming → invoke office-hours
+- Bugs, errors, "why is this broken", 500 errors → invoke investigate
+- Ship, deploy, push, create PR → invoke ship
+- QA, test the site, find bugs → invoke qa
+- Code review, check my diff → invoke review
+- Update docs after shipping → invoke document-release
+- Weekly retro → invoke retro
+- Design system, brand → invoke design-consultation
+- Visual audit, design polish → invoke design-review
+- Architecture review → invoke plan-eng-review
+- Save progress, checkpoint, resume → invoke checkpoint
+- Code quality, health check → invoke health

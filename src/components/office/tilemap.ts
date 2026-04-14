@@ -29,13 +29,15 @@ export const OFFICE_MAP: number[][] = [
   [W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W], // row 17
 ]
 
-export function isTileWalkable(col: number, row: number): boolean {
+export function isBaseTileWalkable(col: number, row: number): boolean {
   const mapRow = OFFICE_MAP[row]
   if (!mapRow) return false
   if (col < 0 || col >= mapRow.length) return false
   const tile = mapRow[col]
   return tile !== undefined && WALKABLE_TILES.has(tile)
 }
+
+export const isTileWalkable = isBaseTileWalkable
 
 export function getTileType(col: number, row: number): number {
   const mapRow = OFFICE_MAP[row]

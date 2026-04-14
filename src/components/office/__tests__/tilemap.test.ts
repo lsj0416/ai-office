@@ -12,11 +12,11 @@ describe('office tilemap', () => {
 
   it('marks room and floor tiles as walkable but walls as blocked', () => {
     expect(getTileType(1, 2)).toBe(T_FLOOR)
-    expect(getTileType(1, 11)).toBe(T_MEETING)
-    expect(getTileType(17, 11)).toBe(T_BREAK)
+    expect(getTileType(1, 12)).toBe(T_MEETING)
+    expect(getTileType(17, 12)).toBe(T_BREAK)
     expect(isTileWalkable(1, 2)).toBe(true)
-    expect(isTileWalkable(1, 11)).toBe(true)
-    expect(isTileWalkable(17, 11)).toBe(true)
+    expect(isTileWalkable(1, 12)).toBe(true)
+    expect(isTileWalkable(17, 12)).toBe(true)
     expect(isTileWalkable(0, 10)).toBe(false)
     expect(OFFICE_MAP).toHaveLength(MAP_ROWS)
     expect(OFFICE_MAP[10]?.length).toBe(MAP_COLS)

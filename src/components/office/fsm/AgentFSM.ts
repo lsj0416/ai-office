@@ -9,8 +9,10 @@
 
 import type { AgentFSMStateType, TilePos } from '@/types/office'
 import type { Direction } from '../sprites/CharacterSprite'
+import { buildOfficeCollisionMap, createOfficeWalkability } from '../collision'
 import { TILE_SIZE, MAP_COLS, MAP_ROWS, AGENT_FSM } from '../constants'
-import { isTileWalkable } from '../tilemap'
+import { OFFICE_COLLISION_PROPS } from '../layout'
+import { isBaseTileWalkable } from '../tilemap'
 import { bfsPath } from '../pathfinding/bfs'
 
 interface Waypoint {
@@ -31,8 +33,6 @@ export interface AgentFSM {
   getState(): AgentFSMState
 }
 
-// ─── 내부 상태 ────────────────────────────────────────────────────────────────
-
 interface Internal {
   state: AgentFSMStateType
   worldX: number
@@ -47,7 +47,8 @@ interface Internal {
   exitTileRow: number
 }
 
-// ─── 유틸 ────────────────────────────────────────────────────────────────────
+const OFFICE_COLLISION_MAP = buildOfficeCollisionMap(OFFICE_COLLISION_PROPS)
+const isOfficeTileWalkable = createOfficeWalkability(OFFICE_COLLISION_MAP, isBaseTileWalkable)
 
 function tileCenter(col: number, row: number): Waypoint {
   return {
@@ -61,13 +62,12 @@ function randomWanderInterval(): number {
   return AGENT_FSM.WANDER_INTERVAL_MIN + Math.random() * range
 }
 
-/** 책상 주변 랜덤 워크 목적지 선택 (출발 타일 근처 ±4열, ±3행) */
 function pickRandomDest(exitCol: number, exitRow: number): TilePos | null {
   for (let attempt = 0; attempt < 30; attempt++) {
     const col = exitCol + Math.floor(Math.random() * 9) - 4
     const row = exitRow + Math.floor(Math.random() * 7) - 3
     if (col >= 1 && col < MAP_COLS - 1 && row >= 1 && row < MAP_ROWS - 1) {
-      if (isTileWalkable(col, row)) {
+      if (isOfficeTileWalkable(col, row)) {
         return { col, row }
       }
     }
@@ -76,11 +76,9 @@ function pickRandomDest(exitCol: number, exitRow: number): TilePos | null {
 }
 
 function bfsToWaypoints(from: TilePos, to: TilePos): Waypoint[] {
-  const path = bfsPath(from, to, isTileWalkable)
+  const path = bfsPath(from, to, isOfficeTileWalkable)
   return path.map((p) => tileCenter(p.col, p.row))
 }
-
-// ─── 이동 처리 ───────────────────────────────────────────────────────────────
 
 function tickMovement(internal: Internal): void {
   if (internal.path.length === 0) return
@@ -92,7 +90,6 @@ function tickMovement(internal: Internal): void {
   const dist = Math.sqrt(dx * dx + dy * dy)
 
   if (dist <= AGENT_FSM.ARRIVAL_THRESHOLD) {
-    // 웨이포인트 도달 — 새 배열로 교체 (불변 패턴)
     internal.path = internal.path.slice(1)
     internal.worldX = target.x
     internal.worldY = target.y
@@ -101,7 +98,6 @@ function tickMovement(internal: Internal): void {
     internal.worldX += (dx / dist) * step
     internal.worldY += (dy / dist) * step
 
-    // 이동 방향 업데이트
     if (Math.abs(dx) >= Math.abs(dy)) {
       internal.direction = dx > 0 ? 'right' : 'left'
     } else {
@@ -109,8 +105,6 @@ function tickMovement(internal: Internal): void {
     }
   }
 }
-
-// ─── 상태 전환 ───────────────────────────────────────────────────────────────
 
 function startWandering(internal: Internal): void {
   const dest = pickRandomDest(internal.exitTileCol, internal.exitTileRow)
@@ -131,11 +125,9 @@ function startReturning(internal: Internal): void {
   const exitTile: TilePos = { col: internal.exitTileCol, row: internal.exitTileRow }
   const returnWaypoints = bfsToWaypoints({ col: currentCol, row: currentRow }, exitTile)
 
-  // 출발 타일이 이미 exit tile 이라면 빈 경로가 올 수 있음 — exit center 보장
   const exitWaypoint = tileCenter(exitTile.col, exitTile.row)
   const allWaypoints = [...returnWaypoints, exitWaypoint]
 
-  // 중복 끝점 제거
   const previousWaypoint = allWaypoints[allWaypoints.length - 2]
   const deduplicated =
     allWaypoints.length >= 2 &&
@@ -158,11 +150,9 @@ function finishReturning(internal: Internal): void {
   internal.wanderInterval = randomWanderInterval()
 }
 
-// ─── 공개 팩토리 ─────────────────────────────────────────────────────────────
-
 export function createAgentFSM(deskCol: number, deskRow: number, deskIndex: number): AgentFSM {
   const deskWorldX = deskCol * TILE_SIZE + TILE_SIZE / 2
-  const deskWorldY = deskRow * TILE_SIZE + 16 // 책상 위면에 착석
+  const deskWorldY = deskRow * TILE_SIZE + 16
 
   const internal: Internal = {
     state: 'IDLE_AT_DESK',
@@ -170,12 +160,12 @@ export function createAgentFSM(deskCol: number, deskRow: number, deskIndex: numb
     worldY: deskWorldY,
     direction: 'down',
     path: [],
-    idleTimer: deskIndex * AGENT_FSM.PHASE_OFFSET_MS, // 에이전트 간 시간 분산
+    idleTimer: deskIndex * AGENT_FSM.PHASE_OFFSET_MS,
     wanderInterval: randomWanderInterval(),
     deskWorldX,
     deskWorldY,
     exitTileCol: deskCol,
-    exitTileRow: deskRow + 1, // 책상 바로 아래 통로
+    exitTileRow: deskRow + 1,
   }
 
   return {

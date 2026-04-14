@@ -2,7 +2,15 @@
 // 스키마 변경 시 supabase/migrations/ 와 함께 업데이트해주세요.
 // 추후: supabase gen types typescript --project-id <id> > src/types/database.ts
 
-import type { AgentRole, AgentStatus, AIModel, TaskStatus, PersonaDetail } from './index'
+import type {
+  AgentRole,
+  AgentStatus,
+  AIModel,
+  TaskStatus,
+  TaskSource,
+  PersonaDetail,
+  WorkspaceProduct,
+} from './index'
 
 export interface Database {
   PostgrestVersion: '12'
@@ -15,6 +23,11 @@ export interface Database {
           name: string
           vision: string
           business: string[]
+          industry: string | null
+          target_customer: string | null
+          products: WorkspaceProduct[] | null
+          team_culture: string | null
+          key_metrics: string | null
           created_at: string
           updated_at: string
         }
@@ -24,6 +37,11 @@ export interface Database {
           name: string
           vision?: string
           business?: string[]
+          industry?: string | null
+          target_customer?: string | null
+          products?: WorkspaceProduct[] | null
+          team_culture?: string | null
+          key_metrics?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -31,6 +49,11 @@ export interface Database {
           name?: string
           vision?: string
           business?: string[]
+          industry?: string | null
+          target_customer?: string | null
+          products?: WorkspaceProduct[] | null
+          team_culture?: string | null
+          key_metrics?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -160,6 +183,8 @@ export interface Database {
           description: string | null
           assignee_id: string | null
           status: TaskStatus
+          generation: number
+          source: TaskSource
           created_at: string
         }
         Insert: {
@@ -169,6 +194,8 @@ export interface Database {
           description?: string | null
           assignee_id?: string | null
           status?: TaskStatus
+          generation?: number
+          source?: TaskSource
           created_at?: string
         }
         Update: {
@@ -176,6 +203,8 @@ export interface Database {
           description?: string | null
           assignee_id?: string | null
           status?: TaskStatus
+          generation?: number
+          source?: TaskSource
         }
         Relationships: [
           {

@@ -41,6 +41,7 @@ export const COLORS = {
 export const AGENT_ROLE_COLORS: Record<string, number> = {
   PM: 0x4a90d9,
   DEVELOPER: 0x7ed321,
+  SECURITY: 0xef4444,
   MARKETER: 0xe040fb,
   DESIGNER: 0xff6090,
   REVIEWER: 0xff9800,
@@ -50,48 +51,12 @@ export const AGENT_ROLE_COLORS: Record<string, number> = {
 export const AGENT_ROLE_HAIR_COLORS: Record<string, number> = {
   PM: 0x1a5fa0,
   DEVELOPER: 0x3d8b00,
+  SECURITY: 0xb91c1c,
   MARKETER: 0x9b00cc,
   DESIGNER: 0xcc1060,
   REVIEWER: 0xcc6600,
   CUSTOM: 0x555555,
 }
-
-export type DeskFacing = 'north' | 'south' | 'east' | 'west'
-
-export interface DeskSceneConfig {
-  col: number
-  row: number
-  chairFacing: DeskFacing
-  chairOffsetX: number
-  chairOffsetY: number
-  pcFacing: DeskFacing
-  pcOffsetX: number
-  pcOffsetY: number
-  agentFacing: DeskFacing
-  agentOffsetX: number
-  agentOffsetY: number
-}
-
-// Tweak per-desk computer/agent facing and offsets here.
-export const DESK_SCENE_CONFIGS: DeskSceneConfig[] = [
-  { col: 4, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 4, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 8, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 8, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 17, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 21, row: 3, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 17, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 21, row: 4, chairFacing: 'north', chairOffsetX: 48, chairOffsetY: 30, pcFacing: 'south', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'north', agentOffsetX: 72, agentOffsetY: 120 },
-  { col: 4, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 8, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 17, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-  { col: 21, row: 8, chairFacing: 'south', chairOffsetX: 48, chairOffsetY: -40, pcFacing: 'north', pcOffsetX: 48, pcOffsetY: 12, agentFacing: 'south', agentOffsetX: 72, agentOffsetY: 65 },
-]
-
-// Preset desk positions on the 28×18 office world
-export const DESK_POSITIONS: [number, number][] = DESK_SCENE_CONFIGS.map(
-  ({ col, row }) => [col, row] as [number, number]
-)
 
 // Player start position (world pixels — center of the work bay)
 export const PLAYER_START = {

@@ -44,6 +44,11 @@ describe('createAgentSchema', () => {
     expect(result.role).toBe('PM')
   })
 
+  it('SECURITY 역할도 허용한다', () => {
+    const result = createAgentSchema.parse({ ...validInput, role: 'SECURITY' })
+    expect(result.role).toBe('SECURITY')
+  })
+
   it('유효하지 않은 UUID면 실패한다', () => {
     expect(() => createAgentSchema.parse({ ...validInput, workspaceId: 'not-uuid' })).toThrow()
   })
